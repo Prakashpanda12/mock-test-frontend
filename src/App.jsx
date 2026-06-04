@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ViewportLayout } from './components/ViewportLayout';
 import { Login } from './pages/Login';
@@ -13,6 +13,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminExamDetail } from './pages/admin/AdminExamDetail';
 import { ResultScreen } from './pages/ResultScreen';
 import { ReviewScreen } from './pages/ReviewScreen';
+import { InstructionsScreen } from './pages/InstructionsScreen';
 
 // Candidate Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -37,6 +38,7 @@ const ExamClient = () => {
   const user = useSelector(state => state.auth.user);
   
   const [targetEpoch, setTargetEpoch] = useState(null);
+  const [instructionsAccepted, setInstructionsAccepted] = useState(false);
 
   const { data: questionsRes, isLoading: questionsLoading, isError: questionsError } = useQuery({
     queryKey: ['questions', examId],
@@ -47,36 +49,14 @@ const ExamClient = () => {
     staleTime: Infinity,
   });
 
+  const questionsResRef = React.useRef(questionsRes);
   useEffect(() => {
-    const initializeSession = async () => {
-      if (!user?._id) return;
-      
-      // Clear any previous exam state (like isSubmitting = true)
-      dispatch(resetExamState());
-      
-      try {
-        const sessionRes = await api.post(`/exam/${examId}/session`, {
-          userId: user._id
-        });
-        const session = sessionRes.data.data;
-        
-        // If this is a completely new session (e.g. a Retake), nuke the local storage
-        // to prevent ghost answers from the previous attempt from loading.
-        if (sessionRes.data.isNewSession) {
-          localStorage.removeItem(`osssc_exam_${examId}`);
-          dispatch(resetExamState()); // Re-reset in case hydrateState sneaked in
-        }
+    questionsResRef.current = questionsRes;
+  }, [questionsRes]);
 
-        const expiresAtDate = new Date(session.timestamps.expiresAt);
-        setTargetEpoch(expiresAtDate.getTime());
-      } catch (error) {
-        console.error('Failed to initialize session:', error);
-      }
-    };
-    initializeSession();
-  }, [examId, user, dispatch]);
-
+  // Run once on mount to setup base state from local storage
   useEffect(() => {
+    dispatch(resetExamState());
     const savedStateStr = localStorage.getItem(`osssc_exam_${examId}`);
     if (savedStateStr) {
       try {
@@ -86,11 +66,46 @@ const ExamClient = () => {
         console.error("Failed to parse saved state", e);
       }
     }
-    
+  }, [dispatch, examId]);
+
+  // Run whenever questions are fetched
+  useEffect(() => {
     if (questionsRes && questionsRes.length > 0) {
       dispatch(setQuestions(questionsRes));
     }
-  }, [dispatch, examId, questionsRes]);
+  }, [dispatch, questionsRes]);
+
+  // Run when instructions are accepted
+  useEffect(() => {
+    const initializeSession = async () => {
+      if (!user?._id || !instructionsAccepted) return;
+      
+      try {
+        const sessionRes = await api.post(`/exam/${examId}/session`, {
+          userId: user._id
+        });
+        const session = sessionRes.data.data;
+        
+        if (sessionRes.data.isNewSession) {
+          localStorage.removeItem(`osssc_exam_${examId}`);
+          dispatch(resetExamState());
+          if (questionsResRef.current && questionsResRef.current.length > 0) {
+            dispatch(setQuestions(questionsResRef.current));
+          }
+        }
+
+        const expiresAtDate = new Date(session.timestamps.expiresAt);
+        setTargetEpoch(expiresAtDate.getTime());
+      } catch (error) {
+        console.error('Failed to initialize session:', error);
+      }
+    };
+    initializeSession();
+  }, [examId, user, dispatch, instructionsAccepted]);
+
+  if (!instructionsAccepted) {
+    return <InstructionsScreen examId={examId} onAccept={() => setInstructionsAccepted(true)} />;
+  }
 
   if (questionsLoading || !targetEpoch) {
     return <div className="flex items-center justify-center h-screen bg-gray-50 text-osssc-blue font-semibold text-lg">Initializing Secure Exam Session...</div>;
@@ -125,7 +140,7 @@ const RootRoute = () => {
 // Main App Routing
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<RootRoute />} />
         <Route path="/login" element={<Login />} />
@@ -179,7 +194,7 @@ function App() {
           } 
         />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

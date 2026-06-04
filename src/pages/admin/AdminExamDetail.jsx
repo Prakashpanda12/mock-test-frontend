@@ -41,6 +41,16 @@ export const AdminExamDetail = () => {
     enabled: activeTab === 'users'
   });
 
+  // Fetch Leaderboard for this exam
+  const { data: leaderboardData, isLoading: lLoading } = useQuery({
+    queryKey: ['admin_exam_leaderboard', examId],
+    queryFn: async () => {
+      const res = await api.get(`/admin/exams/${examId}/leaderboard`);
+      return res.data.data;
+    },
+    enabled: activeTab === 'leaderboard'
+  });
+
   // Upload Mutation
   const uploadMutation = useMutation({
     mutationFn: async (formData) => {
@@ -166,6 +176,12 @@ export const AdminExamDetail = () => {
             onClick={() => setActiveTab('users')}
           >
             Candidate Progress
+          </button>
+          <button 
+            className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'leaderboard' ? 'border-osssc-blue text-osssc-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('leaderboard')}
+          >
+            Leaderboard
           </button>
         </div>
       </div>
@@ -309,6 +325,64 @@ export const AdminExamDetail = () => {
                     {(!progressData || progressData.length === 0) && (
                       <tr>
                         <td colSpan="5" className="p-8 text-center text-gray-500">No candidates registered for this exam yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'leaderboard' && (
+          <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
+            <div className="p-4 md:p-6 border-b bg-gray-50 flex justify-between items-center">
+              <h2 className="text-base md:text-lg font-bold text-gray-800">Exam Leaderboard</h2>
+              <span className="bg-osssc-blue text-white px-3 py-1 rounded text-xs font-bold shadow-sm">Top Scorers</span>
+            </div>
+            
+            <div className="flex-1 overflow-x-auto p-0">
+              {lLoading ? (
+                <div className="p-8 text-center text-gray-500 font-bold">Loading leaderboard...</div>
+              ) : (
+                <table className="w-full text-left border-collapse text-xs md:text-sm min-w-[700px]">
+                  <thead>
+                    <tr className="bg-gray-100 border-b border-gray-200 text-gray-700">
+                      <th className="p-3 font-bold text-center w-16">Rank</th>
+                      <th className="p-3 font-bold">Candidate Name</th>
+                      <th className="p-3 font-bold">Registration No</th>
+                      <th className="p-3 font-bold text-center text-green-700">Correct</th>
+                      <th className="p-3 font-bold text-center text-red-700">Incorrect</th>
+                      <th className="p-3 font-bold text-right text-osssc-blue">Total Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboardData?.map(user => {
+                      const getRankBadge = (rank) => {
+                        if (rank === 1) return <span className="bg-yellow-400 text-yellow-900 w-8 h-8 rounded-full flex items-center justify-center font-black shadow mx-auto">1</span>;
+                        if (rank === 2) return <span className="bg-gray-300 text-gray-800 w-8 h-8 rounded-full flex items-center justify-center font-black shadow mx-auto">2</span>;
+                        if (rank === 3) return <span className="bg-orange-300 text-orange-900 w-8 h-8 rounded-full flex items-center justify-center font-black shadow mx-auto">3</span>;
+                        return <span className="text-gray-600 font-bold">{rank}</span>;
+                      };
+
+                      return (
+                        <tr key={user._id} className={`border-b border-gray-100 hover:bg-blue-50 transition-colors ${user.rank <= 3 ? 'bg-orange-50/30' : ''}`}>
+                          <td className="p-3 text-center align-middle">{getRankBadge(user.rank)}</td>
+                          <td className="p-3 font-bold text-gray-800">{user.name}</td>
+                          <td className="p-3 font-mono text-gray-600">{user.registrationNumber}</td>
+                          <td className="p-3 text-center font-bold text-green-600">{user.correctCount}</td>
+                          <td className="p-3 text-center font-bold text-red-600">{user.incorrectCount}</td>
+                          <td className="p-3 text-right">
+                            <span className="font-black text-osssc-blue text-base md:text-lg">
+                              {user.totalScore.toFixed(2)}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {(!leaderboardData || leaderboardData.length === 0) && (
+                      <tr>
+                        <td colSpan="6" className="p-8 text-center text-gray-500">No submissions found for this exam yet.</td>
                       </tr>
                     )}
                   </tbody>

@@ -12,6 +12,8 @@ export const AdminDashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const [activeTab, setActiveTab] = useState('exams');
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [modalState, setModalState] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
   
@@ -30,6 +32,37 @@ export const AdminDashboard = () => {
     queryFn: async () => {
       const res = await api.get('/admin/exams-stats');
       return res.data.data;
+    },
+    enabled: activeTab === 'exams'
+  });
+
+  // Fetch Users
+  const { data: usersData, isLoading: uLoading } = useQuery({
+    queryKey: ['admin_users'],
+    queryFn: async () => {
+      const res = await api.get('/admin/users');
+      return res.data.data;
+    },
+    enabled: activeTab === 'users'
+  });
+
+  // Toggle User Status Mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (userId) => {
+      const res = await api.put(`/admin/users/${userId}/toggle-status`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['admin_users']);
+    },
+    onError: (err) => {
+      setModalState({
+        isOpen: true,
+        type: 'alert',
+        title: 'Action Failed',
+        message: err.response?.data?.message || 'Could not change user status.',
+        onConfirm: () => setModalState({ ...modalState, isOpen: false })
+      });
     }
   });
 
@@ -121,9 +154,28 @@ export const AdminDashboard = () => {
         </div>
       </header>
       
+      {/* Tab Navigation */}
+      <div className="bg-white border-b shadow-sm px-4 md:px-8 pt-4 overflow-x-auto">
+        <div className="flex gap-4 md:gap-6 min-w-max">
+          <button 
+            className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'exams' ? 'border-osssc-blue text-osssc-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('exams')}
+          >
+            Exam Master List
+          </button>
+          <button 
+            className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'users' ? 'border-osssc-blue text-osssc-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('users')}
+          >
+            Registered Candidates
+          </button>
+        </div>
+      </div>
+
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 md:gap-8">
         
         {/* Exams Master List */}
+        {activeTab === 'exams' && (
         <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
           <div className="p-4 md:p-6 border-b bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -202,6 +254,77 @@ export const AdminDashboard = () => {
             )}
           </div>
         </section>
+        )}
+
+        {/* Users Master List */}
+        {activeTab === 'users' && (
+        <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
+          <div className="p-4 md:p-6 border-b bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Candidates</h2>
+              <p className="text-xs md:text-sm text-gray-500">View all candidates registered in the system.</p>
+            </div>
+            <div className="bg-blue-50 text-osssc-blue px-4 py-2 rounded-lg font-bold shadow-sm border border-blue-100">
+              Total: {usersData?.length || 0}
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-x-auto p-0">
+            {uLoading ? (
+              <div className="p-8 text-center text-gray-500 font-bold">Loading users...</div>
+            ) : (
+              <table className="w-full text-left border-collapse text-xs md:text-sm min-w-[700px]">
+                <thead>
+                  <tr className="bg-gray-100 border-b border-gray-200 text-gray-700">
+                    <th className="p-3 md:p-4 font-bold">Registration Number</th>
+                    <th className="p-3 md:p-4 font-bold">Candidate Name</th>
+                    <th className="p-3 md:p-4 font-bold">Email Address</th>
+                    <th className="p-3 md:p-4 font-bold text-center">Status</th>
+                    <th className="p-3 md:p-4 font-bold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usersData?.map(user => (
+                    <tr key={user._id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="p-3 md:p-4 font-mono font-semibold text-osssc-blue">{user.registrationNumber}</td>
+                      <td className="p-3 md:p-4 font-bold text-gray-800">{user.name}</td>
+                      <td className="p-3 md:p-4 text-gray-600">{user.email}</td>
+                      <td className="p-3 md:p-4 text-center">
+                        <span className={`px-2 py-1 rounded text-[10px] md:text-xs font-bold ${
+                          user.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {user.isActive !== false ? 'Active' : 'Deactivated'}
+                        </span>
+                      </td>
+                      <td className="p-3 md:p-4 text-right">
+                        <button 
+                          onClick={() => toggleStatusMutation.mutate(user._id)}
+                          disabled={toggleStatusMutation.isPending}
+                          className={`font-bold py-1.5 px-3 md:px-4 rounded shadow text-[10px] md:text-xs transition-colors disabled:opacity-50 ${
+                            user.isActive !== false 
+                              ? 'bg-orange-500 hover:bg-orange-600 text-white' 
+                              : 'bg-green-600 hover:bg-green-700 text-white'
+                          }`}
+                        >
+                          {user.isActive !== false ? 'Deactivate' : 'Re-activate'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!usersData || usersData.length === 0) && (
+                    <tr>
+                      <td colSpan="5" className="p-8 md:p-12 text-center text-gray-500">
+                        No candidates found in the system.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+        )}
+
       </main>
 
       {/* Create Modal */}
