@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  --color-osssc-blue: #1e3a8a;
+  --color-osssc-gray: #f3f4f6;
+}
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+  }
+}
