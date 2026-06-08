@@ -31,6 +31,7 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
   const user = useSelector(state => state.auth.user);
 
   const [modalState, setModalState] = useState({ isOpen: false, type: 'confirm', title: '', message: '', onConfirm: null });
+  const [exitModalState, setExitModalState] = useState({ isOpen: false });
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
 
   const { data: examMeta } = useQuery({
@@ -64,6 +65,41 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
       });
     }
   });
+
+  const pauseMutation = useMutation({
+    mutationFn: async (payload) => {
+      const res = await api.post(`/exam/${examId}/pause`, payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      navigate('/dashboard');
+    },
+    onError: (err) => {
+      setModalState({
+        isOpen: true,
+        type: 'alert',
+        title: 'Pause Failed',
+        message: 'Failed to pause exam: ' + (err.response?.data?.message || err.message),
+        onConfirm: () => setModalState({ ...modalState, isOpen: false })
+      });
+    }
+  });
+
+  React.useEffect(() => {
+    // Intercept browser back button
+    const handlePopState = (e) => {
+      e.preventDefault();
+      window.history.pushState(null, "", window.location.href);
+      setExitModalState({ isOpen: true });
+    };
+
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
 
   const handleAutoSubmit = React.useCallback(() => {
     if (isPracticeMode || isSubmitting || submitMutation.isPending) return;
@@ -106,16 +142,28 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
     }
   };
 
-  const handleConfirmSubmit = () => {
-    setModalState({ ...modalState, isOpen: false });
-    const formattedResponses = Object.keys(responses).map(qId => ({
+  const getFormattedResponses = () => {
+    return Object.keys(responses).map(qId => ({
       questionId: qId,
       selectedOption: responses[qId].selectedOption,
       status: responses[qId].status
     }));
+  };
+
+  const handleConfirmSubmit = () => {
+    setModalState({ ...modalState, isOpen: false });
+    setExitModalState({ isOpen: false });
     submitMutation.mutate({
       userId: user._id,
-      responses: formattedResponses
+      responses: getFormattedResponses()
+    });
+  };
+
+  const handlePause = () => {
+    setExitModalState({ isOpen: false });
+    pauseMutation.mutate({
+      userId: user._id,
+      responses: getFormattedResponses()
     });
   };
 
@@ -199,6 +247,26 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
         )}
       </Modal>
 
+      <Modal
+        isOpen={exitModalState.isOpen}
+        type="confirm"
+        title="Exit Exam"
+        message="Do you want to Pause the exam and continue later, or Submit it now?"
+        onConfirm={handleConfirmSubmit}
+        onCancel={() => setExitModalState({ isOpen: false })}
+        confirmText="Submit"
+      >
+        <div className="mt-4 flex flex-col sm:flex-row gap-3 w-full">
+          <button
+            onClick={handlePause}
+            disabled={pauseMutation.isPending}
+            className="flex-1 px-4 py-2 bg-yellow-500 text-white font-bold rounded shadow hover:bg-yellow-600 transition-colors"
+          >
+            {pauseMutation.isPending ? 'Pausing...' : 'Pause Exam'}
+          </button>
+        </div>
+      </Modal>
+
       {/* Mobile Palette Overlay */}
       {isPaletteOpen && (
         <div className="fixed inset-0 z-40 bg-gray-900/40 lg:hidden flex justify-end backdrop-blur-sm animate-in fade-in duration-200">
@@ -219,7 +287,15 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
       {/* Header Zone */}
       <header className="bg-osssc-blue text-white shadow-md z-10 flex flex-col">
         <div className="flex flex-wrap justify-between items-center px-4 md:px-6 py-3 border-b border-blue-800 gap-3">
-          <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider flex-1 min-w-[200px] truncate">{examMeta?.title || 'OSSSC Mock Examination'}</h1>
+          <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-[200px] truncate">
+            <button 
+              onClick={() => setExitModalState({ isOpen: true })}
+              className="text-blue-200 hover:text-white font-bold whitespace-nowrap"
+            >
+              &larr; Exit
+            </button>
+            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider border-l border-blue-800 pl-2 md:pl-4 truncate">{examMeta?.title || 'OSSSC Mock Examination'}</h1>
+          </div>
           <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto justify-between sm:justify-end">
             {isPracticeMode ? (
               <span className="font-semibold text-sm md:text-lg bg-orange-600 px-3 md:px-4 py-1 rounded shadow-inner whitespace-nowrap">

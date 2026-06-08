@@ -105,6 +105,15 @@ const ExamClient = () => {
           if (questionsResRef.current && questionsResRef.current.length > 0) {
             dispatch(setQuestions(questionsResRef.current));
           }
+        } else if (session.responses && session.responses.length > 0) {
+          const backendResponses = {};
+          session.responses.forEach(r => {
+            backendResponses[r.questionId] = {
+              selectedOption: r.selectedOption,
+              status: r.status
+            };
+          });
+          dispatch(hydrateState({ responses: backendResponses }));
         }
 
         const expiresAtDate = new Date(session.timestamps.expiresAt);
