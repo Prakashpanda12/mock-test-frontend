@@ -19,7 +19,12 @@ export const AdminExamDetail = () => {
   const [file, setFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState('');
   const [editingQuestion, setEditingQuestion] = useState(null);
+  const [expandedRows, setExpandedRows] = useState({});
   const [modalState, setModalState] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
+
+  const toggleRow = (id) => {
+    setExpandedRows(prev => ({...prev, [id]: !prev[id]}));
+  };
 
   // Fetch Questions
   const { data: questions, isLoading: qLoading } = useQuery({
@@ -366,9 +371,17 @@ export const AdminExamDetail = () => {
                       };
 
                       return (
-                        <tr key={user._id} className={`border-b border-gray-100 hover:bg-blue-50 transition-colors ${user.rank <= 3 ? 'bg-orange-50/30' : ''}`}>
+                        <React.Fragment key={user._id}>
+                        <tr className={`border-b border-gray-100 hover:bg-blue-50 transition-colors ${user.rank <= 3 ? 'bg-orange-50/30' : ''}`}>
                           <td className="p-3 text-center align-middle">{getRankBadge(user.rank)}</td>
-                          <td className="p-3 font-bold text-gray-800">{user.name}</td>
+                          <td className="p-3 font-bold text-gray-800">
+                            {user.name}
+                            {user.subjects && Object.keys(user.subjects).length > 0 && (
+                              <button onClick={() => toggleRow(user._id)} className="ml-3 px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider text-blue-600 bg-blue-100 rounded hover:bg-blue-200 transition-colors">
+                                {expandedRows[user._id] ? 'Hide Subjects' : 'View Subjects'}
+                              </button>
+                            )}
+                          </td>
                           <td className="p-3 font-mono text-gray-600">{user.registrationNumber}</td>
                           <td className="p-3 text-center font-bold text-green-600">{user.correctCount}</td>
                           <td className="p-3 text-center font-bold text-red-600">{user.incorrectCount}</td>
@@ -378,6 +391,27 @@ export const AdminExamDetail = () => {
                             </span>
                           </td>
                         </tr>
+                        {expandedRows[user._id] && user.subjects && (
+                          <tr className="bg-gray-50 border-b border-gray-200">
+                            <td colSpan="6" className="p-4">
+                              <div className="bg-white rounded border border-gray-200 p-3 shadow-inner">
+                                <h4 className="text-sm font-bold text-gray-700 mb-2">Subject-wise Performance</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                  {Object.entries(user.subjects).map(([subject, stats]) => (
+                                    <div key={subject} className="bg-gray-50 p-2 rounded border border-gray-100 text-xs">
+                                      <div className="font-bold text-gray-800 mb-1 border-b pb-1">{subject}</div>
+                                      <div className="flex justify-between"><span>Attempted:</span> <span className="font-semibold">{stats.attempted}</span></div>
+                                      <div className="flex justify-between"><span>Total Mark:</span> <span className="font-semibold text-green-600">{stats.positiveMarks}</span></div>
+                                      <div className="flex justify-between"><span>Minus Mark:</span> <span className="font-semibold text-red-600">-{stats.negativeMarks}</span></div>
+                                      <div className="flex justify-between mt-1 pt-1 border-t border-gray-200"><span>Net Score:</span> <span className="font-bold text-osssc-blue">{stats.score.toFixed(2)}</span></div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                     {(!leaderboardData || leaderboardData.length === 0) && (

@@ -18,7 +18,6 @@ export const AdminDashboard = () => {
   const [modalState, setModalState] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
   
   // New Exam Form State
-  const [examId, setExamId] = useState('');
   const [examTitle, setExamTitle] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(120);
   const [negativeMarking, setNegativeMarking] = useState(0.25);
@@ -111,7 +110,7 @@ export const AdminDashboard = () => {
     e.preventDefault();
     setCreateError('');
     createMutation.mutate({
-      examId, title: examTitle, durationMinutes, negativeMarking, totalQuestions, totalMarks
+      title: examTitle, durationMinutes, negativeMarking, totalQuestions, totalMarks
     });
   };
 
@@ -184,7 +183,7 @@ export const AdminDashboard = () => {
             </div>
             <button 
               onClick={() => {
-                setExamId(''); setExamTitle(''); setCreateError(''); setShowCreateModal(true);
+                setExamTitle(''); setCreateError(''); setShowCreateModal(true);
               }}
               className="w-full sm:w-auto bg-osssc-blue hover:bg-blue-800 text-white font-bold py-2 md:py-2 px-4 md:px-6 rounded shadow-md transition-colors text-sm md:text-base"
             >
@@ -338,11 +337,7 @@ export const AdminDashboard = () => {
             
             <form onSubmit={handleCreate} className="p-4 md:p-6 overflow-y-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1 md:mb-2">Exam ID (Unique Slug)</label>
-                  <input type="text" value={examId} onChange={(e) => setExamId(e.target.value)} required placeholder="e.g. osssc_nursing_2026" className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-50 focus:outline-none focus:border-osssc-blue text-sm" />
-                </div>
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1 md:mb-2">Exam Title</label>
                   <input type="text" value={examTitle} onChange={(e) => setExamTitle(e.target.value)} required placeholder="e.g. OSSSC Nursing Officer" className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-osssc-blue text-sm" />
                 </div>
