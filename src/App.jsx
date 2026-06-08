@@ -61,7 +61,7 @@ const ExamClient = () => {
   useEffect(() => {
     dispatch(resetExamState());
     if (!isPracticeMode) {
-      const savedStateStr = localStorage.getItem(`osssc_exam_${examId}`);
+      const savedStateStr = localStorage.getItem(`testyari_exam_${examId}`);
       if (savedStateStr) {
         try {
           const savedState = JSON.parse(savedStateStr);
@@ -100,7 +100,7 @@ const ExamClient = () => {
         const session = sessionRes.data.data;
         
         if (sessionRes.data.isNewSession) {
-          localStorage.removeItem(`osssc_exam_${examId}`);
+          localStorage.removeItem(`testyari_exam_${examId}`);
           dispatch(resetExamState());
           if (questionsResRef.current && questionsResRef.current.length > 0) {
             dispatch(setQuestions(questionsResRef.current));
@@ -130,7 +130,7 @@ const ExamClient = () => {
   }
 
   if (questionsLoading || !targetEpoch) {
-    return <div className="flex items-center justify-center h-screen bg-gray-50 text-osssc-blue font-semibold text-lg">Initializing Secure Exam Session...</div>;
+    return <div className="flex items-center justify-center h-screen bg-gray-50 text-testyari-blue font-semibold text-lg">Initializing Secure Exam Session...</div>;
   }
 
   if (questionsError) {

@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// States based on OSSSC guidelines
+// States based on TestYari guidelines
 export const PALETTE_STATES = {
   NOT_VISITED: 'NOT_VISITED', // bg-gray-200
   NOT_ANSWERED: 'NOT_ANSWERED', // bg-red-500

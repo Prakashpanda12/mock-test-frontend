@@ -47,7 +47,36 @@ export const Dashboard = () => {
     }
   });
 
+  const { data: orgData, isLoading: isOrgLoading } = useQuery({
+    queryKey: ['exam_organizations'],
+    queryFn: async () => {
+      const res = await api.get('/exam/organizations');
+      return res.data.data;
+    }
+  });
+
   const [trendModalConfig, setTrendModalConfig] = useState({ isOpen: false, examId: null, examTitle: '' });
+
+  // Filters State
+  const [filterOrg, setFilterOrg] = useState('All');
+  const [filterType, setFilterType] = useState('All');
+  const [filterPost, setFilterPost] = useState('All');
+
+  // Compute options for filters directly from Master Data
+  const availableOrgs = ['All', ...(orgData?.map(o => o.name) || [])];
+  
+  const selectedOrgData = orgData?.find(o => o.name === filterOrg);
+  const availableTypes = ['All', ...(selectedOrgData ? selectedOrgData.recruitments.map(r => r.name) : [])];
+
+  const selectedRecData = selectedOrgData?.recruitments.find(r => r.name === filterType);
+  const availablePosts = ['All', ...(selectedRecData ? selectedRecData.posts : [])];
+
+  const filteredExams = exams?.filter(e => {
+    const matchOrg = filterOrg === 'All' || (e.organization || 'OSSSC') === filterOrg;
+    const matchType = filterType === 'All' || (e.recruitmentType || 'General') === filterType;
+    const matchPost = filterPost === 'All' || (e.targetPosts && e.targetPosts.includes(filterPost));
+    return matchOrg && matchType && matchPost;
+  });
 
   const hasTakenExam = (examId) => {
     if (!performanceHistory) return false;
@@ -127,8 +156,8 @@ export const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col relative">
-      <header className="bg-osssc-blue text-white shadow-md z-10 py-4 px-4 md:px-6 flex flex-wrap justify-between items-center gap-3">
-        <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider">OSSSC Candidate Portal</h1>
+      <header className="bg-testyari-blue text-white shadow-md z-10 py-4 px-4 md:px-6 flex flex-wrap justify-between items-center gap-3">
+        <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider">Govt. Exam Candidate Portal</h1>
         <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto justify-between sm:justify-end">
           <span className="font-semibold text-xs md:text-sm">Welcome, {user?.name}</span>
           <button onClick={handleLogout} className="bg-red-600 hover:bg-red-700 text-white text-xs md:text-sm font-bold py-1.5 md:py-2 px-3 md:px-4 rounded shadow">
@@ -271,13 +300,44 @@ export const Dashboard = () => {
 
         {/* Exams Section */}
         <div>
-          <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-4">Available Examinations</h2>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+            <h2 className="text-lg md:text-xl font-bold text-gray-800">Available Examinations</h2>
+            
+            {/* Filter Controls */}
+            {exams && exams.length > 0 && (
+              <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+                <select 
+                  className="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-testyari-blue focus:border-testyari-blue block p-2 font-semibold shadow-sm"
+                  value={filterOrg}
+                  onChange={(e) => { setFilterOrg(e.target.value); setFilterType('All'); setFilterPost('All'); }}
+                >
+                  {availableOrgs.map(org => <option key={org} value={org}>{org === 'All' ? 'All Organizations' : org}</option>)}
+                </select>
+                <select 
+                  className="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-testyari-blue focus:border-testyari-blue block p-2 font-semibold shadow-sm"
+                  value={filterType}
+                  onChange={(e) => { setFilterType(e.target.value); setFilterPost('All'); }}
+                  disabled={availableTypes.length <= 1}
+                >
+                  {availableTypes.map(type => <option key={type} value={type}>{type === 'All' ? 'All Recruitments' : type}</option>)}
+                </select>
+                <select 
+                  className="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-testyari-blue focus:border-testyari-blue block p-2 font-semibold shadow-sm"
+                  value={filterPost}
+                  onChange={(e) => setFilterPost(e.target.value)}
+                  disabled={availablePosts.length <= 1}
+                >
+                  {availablePosts.map(post => <option key={post} value={post}>{post === 'All' ? 'All Target Posts' : post}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
           
           {isExamsLoading ? (
             <div className="text-center p-8 text-gray-500 font-bold">Loading available exams...</div>
           ) : (
             <div className="grid gap-4">
-              {exams && exams.length > 0 ? exams.map(exam => {
+              {filteredExams && filteredExams.length > 0 ? filteredExams.map(exam => {
                 const alreadyTaken = hasTakenExam(exam.examId);
                 const latestSub = getLatestSubmission(exam.examId);
                 return (
@@ -293,6 +353,18 @@ export const Dashboard = () => {
                         )}
                       </div>
                       
+                      <div className="mb-4">
+                        <div className="flex flex-wrap gap-2 text-xs font-semibold mb-2">
+                          <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md border border-blue-200">{exam.organization || 'OSSSC'}</span>
+                          <span className="bg-purple-50 text-purple-700 px-2.5 py-1 rounded-md border border-purple-200">{exam.recruitmentType || 'General'}</span>
+                        </div>
+                        {exam.targetPosts && (
+                          <div className="text-sm text-gray-600 font-medium">
+                            <span className="text-gray-400 mr-1">Posts:</span> {exam.targetPosts}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 mb-5">
                         <div className="flex items-center gap-1.5">
                           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>

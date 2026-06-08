@@ -33,7 +33,7 @@ export const ResultScreen = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-osssc-blue border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-testyari-blue border-t-transparent"></div>
         <p className="mt-4 text-lg font-bold text-gray-700">Calculating your result...</p>
       </div>
     );
@@ -45,7 +45,7 @@ export const ResultScreen = () => {
         <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full border-t-4 border-red-500">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Result Unavailable</h2>
           <p className="text-gray-600 mb-6">{error.response?.data?.message || 'Failed to fetch result.'}</p>
-          <Link to="/dashboard" className="inline-block bg-osssc-blue text-white font-bold py-3 px-8 rounded-full shadow hover:bg-blue-800 transition-colors">
+          <Link to="/dashboard" className="inline-block bg-testyari-blue text-white font-bold py-3 px-8 rounded-full shadow hover:bg-blue-800 transition-colors">
             Return to Dashboard
           </Link>
         </div>
@@ -66,7 +66,7 @@ export const ResultScreen = () => {
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 mx-4 md:mx-0">
           
           {/* Top Hero Section */}
-          <div className="bg-gradient-to-br from-blue-900 to-osssc-blue px-4 md:px-8 py-8 md:py-12 text-center text-white">
+          <div className="bg-gradient-to-br from-blue-900 to-testyari-blue px-4 md:px-8 py-8 md:py-12 text-center text-white">
             <h2 className="text-sm md:text-xl font-medium text-blue-100 uppercase tracking-widest mb-2">Final Score</h2>
             <div className="flex justify-center items-end gap-2 mb-2">
               <span className="text-5xl md:text-6xl font-black tracking-tighter">{scorecard.totalScore}</span>
@@ -179,7 +179,7 @@ export const ResultScreen = () => {
             </button>
             <Link 
               to={`/exam/${examId}/review`} 
-              className="bg-osssc-blue text-white hover:bg-blue-800 font-bold py-3 px-6 md:px-8 rounded-full transition-colors shadow-sm text-center w-full sm:w-auto"
+              className="bg-testyari-blue text-white hover:bg-blue-800 font-bold py-3 px-6 md:px-8 rounded-full transition-colors shadow-sm text-center w-full sm:w-auto"
             >
               Review Answers &rarr;
             </Link>

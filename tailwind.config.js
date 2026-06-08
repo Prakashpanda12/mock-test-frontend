@@ -7,8 +7,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        'osssc-blue': '#1e3a8a',
-        'osssc-gray': '#f3f4f6',
+        'testyari-blue': '#1e3a8a',
+        'testyari-gray': '#f3f4f6',
       }
     },
   },

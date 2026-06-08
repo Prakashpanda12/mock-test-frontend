@@ -109,7 +109,7 @@ export const QuestionForm = ({ initialData, onSave, onCancel }) => {
 
           <div className="flex justify-end gap-4 border-t pt-4 sticky bottom-0 bg-white z-10">
             <button type="button" onClick={onCancel} className="px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded">Cancel</button>
-            <button type="submit" className="px-6 py-2 bg-osssc-blue text-white font-bold rounded">Save Question</button>
+            <button type="submit" className="px-6 py-2 bg-testyari-blue text-white font-bold rounded">Save Question</button>
           </div>
         </form>
       </div>

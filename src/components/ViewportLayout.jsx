@@ -52,7 +52,7 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['exam_result', examId]);
-      localStorage.removeItem(`osssc_exam_${examId}`);
+      localStorage.removeItem(`testyari_exam_${examId}`);
       dispatch(setSubmitting(true));
     },
     onError: (err) => {
@@ -194,12 +194,12 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
 
   if (isSubmitting) {
     return (
-      <div className="flex items-center justify-center h-screen bg-osssc-blue text-white flex-col p-4 text-center">
+      <div className="flex items-center justify-center h-screen bg-testyari-blue text-white flex-col p-4 text-center">
         <h1 className="text-3xl md:text-4xl font-bold mb-4">Exam Submitted Successfully</h1>
-        <p className="text-lg md:text-xl mb-8">Thank you for taking the OSSSC Computer Based Test.</p>
+        <p className="text-lg md:text-xl mb-8">Thank you for taking the TestYari Computer Based Test.</p>
         <button 
           onClick={() => navigate(`/exam/${examId}/result`)}
-          className="bg-white text-osssc-blue font-bold px-8 py-3 rounded-full shadow-lg hover:bg-gray-100 transition-colors"
+          className="bg-white text-testyari-blue font-bold px-8 py-3 rounded-full shadow-lg hover:bg-gray-100 transition-colors"
         >
           View My Result Scorecard
         </button>
@@ -285,7 +285,7 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
       )}
 
       {/* Header Zone */}
-      <header className="bg-osssc-blue text-white shadow-md z-10 flex flex-col">
+      <header className="bg-testyari-blue text-white shadow-md z-10 flex flex-col">
         <div className="flex flex-wrap justify-between items-center px-4 md:px-6 py-3 border-b border-blue-800 gap-3">
           <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-[200px] truncate">
             <button 
@@ -294,7 +294,7 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
             >
               &larr; Exit
             </button>
-            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider border-l border-blue-800 pl-2 md:pl-4 truncate">{examMeta?.title || 'OSSSC Mock Examination'}</h1>
+            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider border-l border-blue-800 pl-2 md:pl-4 truncate">{examMeta?.title || 'TestYari Mock Examination'}</h1>
           </div>
           <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto justify-between sm:justify-end">
             {isPracticeMode ? (
@@ -323,7 +323,7 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
               <button 
                 key={idx} 
                 onClick={() => handleSubjectClick(section)}
-                className={`px-3 md:px-4 py-1 text-xs md:text-sm font-semibold rounded whitespace-nowrap transition-colors ${isActive ? 'bg-white text-osssc-blue shadow' : 'text-blue-200 hover:bg-blue-800'}`}
+                className={`px-3 md:px-4 py-1 text-xs md:text-sm font-semibold rounded whitespace-nowrap transition-colors ${isActive ? 'bg-white text-testyari-blue shadow' : 'text-blue-200 hover:bg-blue-800'}`}
               >
                 {section}
               </button>
@@ -363,7 +363,7 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
               {currentQuestion.options.map((opt) => {
                 let borderClass = 'border-gray-200 hover:bg-gray-50';
                 if (currentResponse?.selectedOption === opt.index) {
-                  borderClass = 'border-osssc-blue bg-blue-50';
+                  borderClass = 'border-testyari-blue bg-blue-50';
                 }
                 
                 // Practice Mode formatting
@@ -386,7 +386,7 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
                       <input 
                         type="radio" 
                         name={`question_${currentQuestion._id}`}
-                        className={`w-4 h-4 md:w-5 md:h-5 text-osssc-blue accent-osssc-blue ${hasAnsweredInPractice ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                        className={`w-4 h-4 md:w-5 md:h-5 text-testyari-blue accent-testyari-blue ${hasAnsweredInPractice ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                         checked={currentResponse?.selectedOption === opt.index}
                         onChange={() => {
                           if (!hasAnsweredInPractice) {

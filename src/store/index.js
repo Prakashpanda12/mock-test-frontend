@@ -21,7 +21,7 @@ const localStorageMiddleware = store => next => action => {
       currentQuestionIndex: state.currentQuestionIndex,
       language: state.language
     };
-    localStorage.setItem(`osssc_exam_${state.examId}`, JSON.stringify(persistData));
+    localStorage.setItem(`testyari_exam_${state.examId}`, JSON.stringify(persistData));
   }
   
   return result;

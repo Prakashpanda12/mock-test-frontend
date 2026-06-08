@@ -21,7 +21,7 @@ export const Modal = ({ isOpen, title, message, type = 'confirm', onConfirm, onC
           {type !== 'alert' && (
             <button
               onClick={onCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-osssc-blue transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-testyari-blue transition-colors"
             >
               {cancelText}
             </button>
@@ -31,7 +31,7 @@ export const Modal = ({ isOpen, title, message, type = 'confirm', onConfirm, onC
             className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
               type === 'danger' 
                 ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' 
-                : 'bg-osssc-blue hover:bg-blue-700 focus:ring-osssc-blue'
+                : 'bg-testyari-blue hover:bg-blue-700 focus:ring-testyari-blue'
             }`}
           >
             {type === 'alert' ? 'OK' : confirmText}

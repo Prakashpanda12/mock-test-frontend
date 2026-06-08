@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --color-osssc-blue: #1e3a8a;
-  --color-osssc-gray: #f3f4f6;
+  --color-testyari-blue: #1e3a8a;
+  --color-testyari-gray: #f3f4f6;
 }
 
 @layer base {
