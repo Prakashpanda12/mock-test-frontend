@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { HashRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ViewportLayout } from './components/ViewportLayout';
 import { Login } from './pages/Login';
@@ -34,16 +34,19 @@ const AdminRoute = ({ children }) => {
 // Exam Client Component
 const ExamClient = () => {
   const { examId } = useParams();
+  const location = useLocation();
+  const isPracticeMode = new URLSearchParams(location.search).get('mode') === 'practice';
   const dispatch = useDispatch();
   const user = useSelector(state => state.auth.user);
   
-  const [targetEpoch, setTargetEpoch] = useState(null);
-  const [instructionsAccepted, setInstructionsAccepted] = useState(false);
+  const [targetEpoch, setTargetEpoch] = useState(isPracticeMode ? Infinity : null);
+  const [instructionsAccepted, setInstructionsAccepted] = useState(isPracticeMode); // Skip instructions in practice mode
 
   const { data: questionsRes, isLoading: questionsLoading, isError: questionsError } = useQuery({
-    queryKey: ['questions', examId],
+    queryKey: ['questions', examId, isPracticeMode],
     queryFn: async () => {
-      const response = await api.get(`/exam/${examId}/questions`);
+      const endpoint = isPracticeMode ? `/exam/${examId}/practice-questions` : `/exam/${examId}/questions`;
+      const response = await api.get(endpoint);
       return response.data.data;
     },
     staleTime: Infinity,
@@ -57,16 +60,18 @@ const ExamClient = () => {
   // Run once on mount to setup base state from local storage
   useEffect(() => {
     dispatch(resetExamState());
-    const savedStateStr = localStorage.getItem(`osssc_exam_${examId}`);
-    if (savedStateStr) {
-      try {
-        const savedState = JSON.parse(savedStateStr);
-        dispatch(hydrateState(savedState));
-      } catch (e) {
-        console.error("Failed to parse saved state", e);
+    if (!isPracticeMode) {
+      const savedStateStr = localStorage.getItem(`testyari_exam_${examId}`);
+      if (savedStateStr) {
+        try {
+          const savedState = JSON.parse(savedStateStr);
+          dispatch(hydrateState(savedState));
+        } catch (e) {
+          console.error("Failed to parse saved state", e);
+        }
       }
     }
-  }, [dispatch, examId]);
+  }, [dispatch, examId, isPracticeMode]);
 
   // Run whenever questions are fetched
   useEffect(() => {
@@ -79,6 +84,14 @@ const ExamClient = () => {
   useEffect(() => {
     const initializeSession = async () => {
       if (!user?._id || !instructionsAccepted) return;
+      if (isPracticeMode) {
+        // No session creation for practice mode
+        dispatch(resetExamState());
+        if (questionsResRef.current && questionsResRef.current.length > 0) {
+          dispatch(setQuestions(questionsResRef.current));
+        }
+        return;
+      }
       
       try {
         const sessionRes = await api.post(`/exam/${examId}/session`, {
@@ -87,11 +100,20 @@ const ExamClient = () => {
         const session = sessionRes.data.data;
         
         if (sessionRes.data.isNewSession) {
-          localStorage.removeItem(`osssc_exam_${examId}`);
+          localStorage.removeItem(`testyari_exam_${examId}`);
           dispatch(resetExamState());
           if (questionsResRef.current && questionsResRef.current.length > 0) {
             dispatch(setQuestions(questionsResRef.current));
           }
+        } else if (session.responses && session.responses.length > 0) {
+          const backendResponses = {};
+          session.responses.forEach(r => {
+            backendResponses[r.questionId] = {
+              selectedOption: r.selectedOption,
+              status: r.status
+            };
+          });
+          dispatch(hydrateState({ responses: backendResponses }));
         }
 
         const expiresAtDate = new Date(session.timestamps.expiresAt);
@@ -101,14 +123,14 @@ const ExamClient = () => {
       }
     };
     initializeSession();
-  }, [examId, user, dispatch, instructionsAccepted]);
+  }, [examId, user, dispatch, instructionsAccepted, isPracticeMode]);
 
   if (!instructionsAccepted) {
     return <InstructionsScreen examId={examId} onAccept={() => setInstructionsAccepted(true)} />;
   }
 
   if (questionsLoading || !targetEpoch) {
-    return <div className="flex items-center justify-center h-screen bg-gray-50 text-osssc-blue font-semibold text-lg">Initializing Secure Exam Session...</div>;
+    return <div className="flex items-center justify-center h-screen bg-gray-50 text-testyari-blue font-semibold text-lg">Initializing Secure Exam Session...</div>;
   }
 
   if (questionsError) {
@@ -124,7 +146,7 @@ const ExamClient = () => {
 
   return (
     <div className="App overflow-hidden">
-      <ViewportLayout targetEpoch={targetEpoch} />
+      <ViewportLayout targetEpoch={targetEpoch} isPracticeMode={isPracticeMode} />
     </div>
   );
 };

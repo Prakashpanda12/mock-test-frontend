@@ -19,7 +19,12 @@ export const AdminExamDetail = () => {
   const [file, setFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState('');
   const [editingQuestion, setEditingQuestion] = useState(null);
+  const [expandedRows, setExpandedRows] = useState({});
   const [modalState, setModalState] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
+
+  const toggleRow = (id) => {
+    setExpandedRows(prev => ({...prev, [id]: !prev[id]}));
+  };
 
   // Fetch Questions
   const { data: questions, isLoading: qLoading } = useQuery({
@@ -166,19 +171,19 @@ export const AdminExamDetail = () => {
       <div className="bg-white border-b shadow-sm px-4 md:px-8 pt-4 overflow-x-auto">
         <div className="flex gap-4 md:gap-6 min-w-max">
           <button 
-            className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'questions' ? 'border-osssc-blue text-osssc-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'questions' ? 'border-testyari-blue text-testyari-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('questions')}
           >
             Question Bank
           </button>
           <button 
-            className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'users' ? 'border-osssc-blue text-osssc-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'users' ? 'border-testyari-blue text-testyari-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('users')}
           >
             Candidate Progress
           </button>
           <button 
-            className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'leaderboard' ? 'border-osssc-blue text-osssc-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'leaderboard' ? 'border-testyari-blue text-testyari-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('leaderboard')}
           >
             Leaderboard
@@ -197,7 +202,7 @@ export const AdminExamDetail = () => {
                 <a 
                   href="/template_questions.csv" 
                   download 
-                  className="text-xs md:text-sm font-bold text-osssc-blue hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded transition-colors"
+                  className="text-xs md:text-sm font-bold text-testyari-blue hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                   Download Template
@@ -209,7 +214,7 @@ export const AdminExamDetail = () => {
                     <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1 md:mb-2">Questions File (CSV/XLSX)</label>
                     <input type="file" accept=".csv, .xlsx, .xls" onChange={(e) => setFile(e.target.files[0])} className="w-full border rounded px-3 py-1.5 bg-white text-xs md:text-sm" />
                   </div>
-                  <button type="submit" disabled={!file || uploadMutation.isPending} className="w-full sm:w-auto bg-osssc-blue text-white font-bold py-2 px-6 rounded shadow disabled:opacity-50 text-sm md:text-base">
+                  <button type="submit" disabled={!file || uploadMutation.isPending} className="w-full sm:w-auto bg-testyari-blue text-white font-bold py-2 px-6 rounded shadow disabled:opacity-50 text-sm md:text-base">
                     {uploadMutation.isPending ? 'Uploading...' : 'Upload Questions'}
                   </button>
                 </div>
@@ -338,7 +343,7 @@ export const AdminExamDetail = () => {
           <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
             <div className="p-4 md:p-6 border-b bg-gray-50 flex justify-between items-center">
               <h2 className="text-base md:text-lg font-bold text-gray-800">Exam Leaderboard</h2>
-              <span className="bg-osssc-blue text-white px-3 py-1 rounded text-xs font-bold shadow-sm">Top Scorers</span>
+              <span className="bg-testyari-blue text-white px-3 py-1 rounded text-xs font-bold shadow-sm">Top Scorers</span>
             </div>
             
             <div className="flex-1 overflow-x-auto p-0">
@@ -353,7 +358,7 @@ export const AdminExamDetail = () => {
                       <th className="p-3 font-bold">Registration No</th>
                       <th className="p-3 font-bold text-center text-green-700">Correct</th>
                       <th className="p-3 font-bold text-center text-red-700">Incorrect</th>
-                      <th className="p-3 font-bold text-right text-osssc-blue">Total Score</th>
+                      <th className="p-3 font-bold text-right text-testyari-blue">Total Score</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -366,18 +371,47 @@ export const AdminExamDetail = () => {
                       };
 
                       return (
-                        <tr key={user._id} className={`border-b border-gray-100 hover:bg-blue-50 transition-colors ${user.rank <= 3 ? 'bg-orange-50/30' : ''}`}>
+                        <React.Fragment key={user._id}>
+                        <tr className={`border-b border-gray-100 hover:bg-blue-50 transition-colors ${user.rank <= 3 ? 'bg-orange-50/30' : ''}`}>
                           <td className="p-3 text-center align-middle">{getRankBadge(user.rank)}</td>
-                          <td className="p-3 font-bold text-gray-800">{user.name}</td>
+                          <td className="p-3 font-bold text-gray-800">
+                            {user.name}
+                            {user.subjects && Object.keys(user.subjects).length > 0 && (
+                              <button onClick={() => toggleRow(user._id)} className="ml-3 px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider text-blue-600 bg-blue-100 rounded hover:bg-blue-200 transition-colors">
+                                {expandedRows[user._id] ? 'Hide Subjects' : 'View Subjects'}
+                              </button>
+                            )}
+                          </td>
                           <td className="p-3 font-mono text-gray-600">{user.registrationNumber}</td>
                           <td className="p-3 text-center font-bold text-green-600">{user.correctCount}</td>
                           <td className="p-3 text-center font-bold text-red-600">{user.incorrectCount}</td>
                           <td className="p-3 text-right">
-                            <span className="font-black text-osssc-blue text-base md:text-lg">
+                            <span className="font-black text-testyari-blue text-base md:text-lg">
                               {user.totalScore.toFixed(2)}
                             </span>
                           </td>
                         </tr>
+                        {expandedRows[user._id] && user.subjects && (
+                          <tr className="bg-gray-50 border-b border-gray-200">
+                            <td colSpan="6" className="p-4">
+                              <div className="bg-white rounded border border-gray-200 p-3 shadow-inner">
+                                <h4 className="text-sm font-bold text-gray-700 mb-2">Subject-wise Performance</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                  {Object.entries(user.subjects).map(([subject, stats]) => (
+                                    <div key={subject} className="bg-gray-50 p-2 rounded border border-gray-100 text-xs">
+                                      <div className="font-bold text-gray-800 mb-1 border-b pb-1">{subject}</div>
+                                      <div className="flex justify-between"><span>Attempted:</span> <span className="font-semibold">{stats.attempted}</span></div>
+                                      <div className="flex justify-between"><span>Total Mark:</span> <span className="font-semibold text-green-600">{stats.positiveMarks}</span></div>
+                                      <div className="flex justify-between"><span>Minus Mark:</span> <span className="font-semibold text-red-600">-{stats.negativeMarks}</span></div>
+                                      <div className="flex justify-between mt-1 pt-1 border-t border-gray-200"><span>Net Score:</span> <span className="font-bold text-testyari-blue">{stats.score.toFixed(2)}</span></div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                     {(!leaderboardData || leaderboardData.length === 0) && (

@@ -34,7 +34,7 @@ export const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-        <div className="bg-osssc-blue px-6 py-4 border-b border-blue-800">
+        <div className="bg-testyari-blue px-6 py-4 border-b border-blue-800">
           <h2 className="text-2xl font-bold text-white text-center">Candidate Login</h2>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -45,7 +45,7 @@ export const Login = () => {
             <input 
               type="email" 
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-osssc-blue"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-testyari-blue"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@example.com"
@@ -56,7 +56,7 @@ export const Login = () => {
             <input 
               type="password" 
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-osssc-blue"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-testyari-blue"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -65,12 +65,12 @@ export const Login = () => {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-osssc-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded focus:outline-none shadow-md transition-colors disabled:opacity-70"
+            className="w-full bg-testyari-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded focus:outline-none shadow-md transition-colors disabled:opacity-70"
           >
             {loading ? 'Logging in...' : 'Sign In'}
           </button>
           <div className="text-center mt-4 text-sm text-gray-600">
-            Don't have an account? <Link to="/signup" className="text-osssc-blue font-semibold hover:underline">Register here</Link>
+            Don't have an account? <Link to="/signup" className="text-testyari-blue font-semibold hover:underline">Register here</Link>
           </div>
         </form>
       </div>

@@ -68,7 +68,7 @@ export const QuestionPalette = ({ onCloseMobile }) => {
       </div>
 
       <div className="flex-1 overflow-y-auto" ref={scrollContainerRef}>
-        <h3 className="font-bold text-osssc-blue mb-3 text-sm uppercase">Question Palette View:</h3>
+        <h3 className="font-bold text-testyari-blue mb-3 text-sm uppercase">Question Palette View:</h3>
         <div className="grid grid-cols-5 gap-2">
           {questions.map((q, idx) => {
             const status = responses[q._id]?.status || PALETTE_STATES.NOT_VISITED;

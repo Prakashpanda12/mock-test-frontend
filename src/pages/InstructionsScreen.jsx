@@ -19,7 +19,7 @@ export const InstructionsScreen = ({ examId, onAccept }) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-osssc-blue border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-testyari-blue border-t-transparent"></div>
       </div>
     );
   }
@@ -30,7 +30,7 @@ export const InstructionsScreen = ({ examId, onAccept }) => {
         <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Exam Details</h2>
         <button 
           onClick={() => navigate('/dashboard')}
-          className="bg-osssc-blue text-white px-6 py-2 rounded shadow hover:bg-blue-800 transition"
+          className="bg-testyari-blue text-white px-6 py-2 rounded shadow hover:bg-blue-800 transition"
         >
           Return to Dashboard
         </button>
@@ -43,7 +43,7 @@ export const InstructionsScreen = ({ examId, onAccept }) => {
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
         
         {/* Header */}
-        <div className="bg-osssc-blue px-6 py-6 text-white text-center">
+        <div className="bg-testyari-blue px-6 py-6 text-white text-center">
           <h1 className="text-2xl font-bold uppercase tracking-wide">{examMeta.title}</h1>
           <p className="mt-2 text-blue-100 font-medium">Please read the following instructions carefully before starting the exam.</p>
         </div>
@@ -54,15 +54,15 @@ export const InstructionsScreen = ({ examId, onAccept }) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100 text-center">
             <div>
               <p className="text-xs text-blue-800 font-bold uppercase">Duration</p>
-              <p className="text-lg font-black text-osssc-blue">{examMeta.durationMinutes} Min</p>
+              <p className="text-lg font-black text-testyari-blue">{examMeta.durationMinutes} Min</p>
             </div>
             <div>
               <p className="text-xs text-blue-800 font-bold uppercase">Questions</p>
-              <p className="text-lg font-black text-osssc-blue">{examMeta.totalQuestions}</p>
+              <p className="text-lg font-black text-testyari-blue">{examMeta.totalQuestions}</p>
             </div>
             <div>
               <p className="text-xs text-blue-800 font-bold uppercase">Total Marks</p>
-              <p className="text-lg font-black text-osssc-blue">{examMeta.totalMarks}</p>
+              <p className="text-lg font-black text-testyari-blue">{examMeta.totalMarks}</p>
             </div>
             <div>
               <p className="text-xs text-blue-800 font-bold uppercase">Negative Marking</p>
@@ -102,7 +102,7 @@ export const InstructionsScreen = ({ examId, onAccept }) => {
             <label className="flex items-start gap-3 cursor-pointer">
               <input 
                 type="checkbox" 
-                className="mt-1 w-5 h-5 text-osssc-blue accent-osssc-blue rounded"
+                className="mt-1 w-5 h-5 text-testyari-blue accent-testyari-blue rounded"
                 checked={isChecked}
                 onChange={(e) => setIsChecked(e.target.checked)}
               />
@@ -125,7 +125,7 @@ export const InstructionsScreen = ({ examId, onAccept }) => {
           <button 
             onClick={onAccept}
             disabled={!isChecked}
-            className={`px-8 py-3 rounded-full font-bold shadow transition w-full sm:w-auto text-center ${isChecked ? 'bg-osssc-blue text-white hover:bg-blue-800' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+            className={`px-8 py-3 rounded-full font-bold shadow transition w-full sm:w-auto text-center ${isChecked ? 'bg-testyari-blue text-white hover:bg-blue-800' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
           >
             I Am Ready To Begin
           </button>

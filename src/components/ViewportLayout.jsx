@@ -16,7 +16,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axiosConfig';
 
-export const ViewportLayout = ({ targetEpoch }) => {
+export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { examId } = useParams();
@@ -30,8 +30,8 @@ export const ViewportLayout = ({ targetEpoch }) => {
 
   const user = useSelector(state => state.auth.user);
 
-
   const [modalState, setModalState] = useState({ isOpen: false, type: 'confirm', title: '', message: '', onConfirm: null });
+  const [exitModalState, setExitModalState] = useState({ isOpen: false });
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
 
   const { data: examMeta } = useQuery({
@@ -52,7 +52,7 @@ export const ViewportLayout = ({ targetEpoch }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['exam_result', examId]);
-      localStorage.removeItem(`osssc_exam_${examId}`);
+      localStorage.removeItem(`testyari_exam_${examId}`);
       dispatch(setSubmitting(true));
     },
     onError: (err) => {
@@ -66,8 +66,43 @@ export const ViewportLayout = ({ targetEpoch }) => {
     }
   });
 
+  const pauseMutation = useMutation({
+    mutationFn: async (payload) => {
+      const res = await api.post(`/exam/${examId}/pause`, payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      navigate('/dashboard');
+    },
+    onError: (err) => {
+      setModalState({
+        isOpen: true,
+        type: 'alert',
+        title: 'Pause Failed',
+        message: 'Failed to pause exam: ' + (err.response?.data?.message || err.message),
+        onConfirm: () => setModalState({ ...modalState, isOpen: false })
+      });
+    }
+  });
+
+  React.useEffect(() => {
+    // Intercept browser back button
+    const handlePopState = (e) => {
+      e.preventDefault();
+      window.history.pushState(null, "", window.location.href);
+      setExitModalState({ isOpen: true });
+    };
+
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
   const handleAutoSubmit = React.useCallback(() => {
-    if (isSubmitting || submitMutation.isPending) return;
+    if (isPracticeMode || isSubmitting || submitMutation.isPending) return;
     
     setModalState({
       isOpen: true,
@@ -87,7 +122,7 @@ export const ViewportLayout = ({ targetEpoch }) => {
       userId: user._id,
       responses: formattedResponses
     });
-  }, [isSubmitting, submitMutation, responses, user._id]);
+  }, [isPracticeMode, isSubmitting, submitMutation, responses, user._id]);
 
   const { formattedTime } = useAbsoluteTimer(targetEpoch, handleAutoSubmit);
 
@@ -107,16 +142,28 @@ export const ViewportLayout = ({ targetEpoch }) => {
     }
   };
 
-  const handleConfirmSubmit = () => {
-    setModalState({ ...modalState, isOpen: false });
-    const formattedResponses = Object.keys(responses).map(qId => ({
+  const getFormattedResponses = () => {
+    return Object.keys(responses).map(qId => ({
       questionId: qId,
       selectedOption: responses[qId].selectedOption,
       status: responses[qId].status
     }));
+  };
+
+  const handleConfirmSubmit = () => {
+    setModalState({ ...modalState, isOpen: false });
+    setExitModalState({ isOpen: false });
     submitMutation.mutate({
       userId: user._id,
-      responses: formattedResponses
+      responses: getFormattedResponses()
+    });
+  };
+
+  const handlePause = () => {
+    setExitModalState({ isOpen: false });
+    pauseMutation.mutate({
+      userId: user._id,
+      responses: getFormattedResponses()
     });
   };
 
@@ -147,18 +194,21 @@ export const ViewportLayout = ({ targetEpoch }) => {
 
   if (isSubmitting) {
     return (
-      <div className="flex items-center justify-center h-screen bg-osssc-blue text-white flex-col p-4 text-center">
+      <div className="flex items-center justify-center h-screen bg-testyari-blue text-white flex-col p-4 text-center">
         <h1 className="text-3xl md:text-4xl font-bold mb-4">Exam Submitted Successfully</h1>
-        <p className="text-lg md:text-xl mb-8">Thank you for taking the OSSSC Computer Based Test.</p>
+        <p className="text-lg md:text-xl mb-8">Thank you for taking the TestYari Computer Based Test.</p>
         <button 
           onClick={() => navigate(`/exam/${examId}/result`)}
-          className="bg-white text-osssc-blue font-bold px-8 py-3 rounded-full shadow-lg hover:bg-gray-100 transition-colors"
+          className="bg-white text-testyari-blue font-bold px-8 py-3 rounded-full shadow-lg hover:bg-gray-100 transition-colors"
         >
           View My Result Scorecard
         </button>
       </div>
     );
   }
+
+  const hasAnsweredInPractice = isPracticeMode && currentResponse && currentResponse.selectedOption !== null && currentResponse.selectedOption !== undefined;
+  const isPracticeCorrect = hasAnsweredInPractice && currentResponse.selectedOption === currentQuestion.correctOptionIndex;
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gray-50 font-sans text-gray-800">
@@ -197,6 +247,26 @@ export const ViewportLayout = ({ targetEpoch }) => {
         )}
       </Modal>
 
+      <Modal
+        isOpen={exitModalState.isOpen}
+        type="confirm"
+        title="Exit Exam"
+        message="Do you want to Pause the exam and continue later, or Submit it now?"
+        onConfirm={handleConfirmSubmit}
+        onCancel={() => setExitModalState({ isOpen: false })}
+        confirmText="Submit"
+      >
+        <div className="mt-4 flex flex-col sm:flex-row gap-3 w-full">
+          <button
+            onClick={handlePause}
+            disabled={pauseMutation.isPending}
+            className="flex-1 px-4 py-2 bg-yellow-500 text-white font-bold rounded shadow hover:bg-yellow-600 transition-colors"
+          >
+            {pauseMutation.isPending ? 'Pausing...' : 'Pause Exam'}
+          </button>
+        </div>
+      </Modal>
+
       {/* Mobile Palette Overlay */}
       {isPaletteOpen && (
         <div className="fixed inset-0 z-40 bg-gray-900/40 lg:hidden flex justify-end backdrop-blur-sm animate-in fade-in duration-200">
@@ -215,13 +285,27 @@ export const ViewportLayout = ({ targetEpoch }) => {
       )}
 
       {/* Header Zone */}
-      <header className="bg-osssc-blue text-white shadow-md z-10 flex flex-col">
+      <header className="bg-testyari-blue text-white shadow-md z-10 flex flex-col">
         <div className="flex flex-wrap justify-between items-center px-4 md:px-6 py-3 border-b border-blue-800 gap-3">
-          <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider flex-1 min-w-[200px] truncate">{examMeta?.title || 'OSSSC Mock Examination'}</h1>
+          <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-[200px] truncate">
+            <button 
+              onClick={() => setExitModalState({ isOpen: true })}
+              className="text-blue-200 hover:text-white font-bold whitespace-nowrap"
+            >
+              &larr; Exit
+            </button>
+            <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider border-l border-blue-800 pl-2 md:pl-4 truncate">{examMeta?.title || 'TestYari Mock Examination'}</h1>
+          </div>
           <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto justify-between sm:justify-end">
-            <span className="font-semibold text-sm md:text-lg bg-red-600 px-3 md:px-4 py-1 rounded shadow-inner whitespace-nowrap">
-              TIME: {formattedTime}
-            </span>
+            {isPracticeMode ? (
+              <span className="font-semibold text-sm md:text-lg bg-orange-600 px-3 md:px-4 py-1 rounded shadow-inner whitespace-nowrap">
+                PRACTICE MODE (No Timer)
+              </span>
+            ) : (
+              <span className="font-semibold text-sm md:text-lg bg-red-600 px-3 md:px-4 py-1 rounded shadow-inner whitespace-nowrap">
+                TIME: {formattedTime}
+              </span>
+            )}
             <button 
               onClick={() => setIsPaletteOpen(true)}
               className="lg:hidden bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded flex items-center gap-2 text-sm font-bold border border-white/20 transition-colors"
@@ -239,7 +323,7 @@ export const ViewportLayout = ({ targetEpoch }) => {
               <button 
                 key={idx} 
                 onClick={() => handleSubjectClick(section)}
-                className={`px-3 md:px-4 py-1 text-xs md:text-sm font-semibold rounded whitespace-nowrap transition-colors ${isActive ? 'bg-white text-osssc-blue shadow' : 'text-blue-200 hover:bg-blue-800'}`}
+                className={`px-3 md:px-4 py-1 text-xs md:text-sm font-semibold rounded whitespace-nowrap transition-colors ${isActive ? 'bg-white text-testyari-blue shadow' : 'text-blue-200 hover:bg-blue-800'}`}
               >
                 {section}
               </button>
@@ -276,66 +360,148 @@ export const ViewportLayout = ({ targetEpoch }) => {
             </div>
             
             <div className="space-y-3 md:space-y-4">
-              {currentQuestion.options.map((opt) => (
-                <label 
-                  key={opt.index} 
-                  className={`flex items-start gap-3 md:gap-4 p-3 md:p-4 border rounded cursor-pointer transition-colors ${currentResponse?.selectedOption === opt.index ? 'border-osssc-blue bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    <input 
-                      type="radio" 
-                      name={`question_${currentQuestion._id}`}
-                      className="w-4 h-4 md:w-5 md:h-5 text-osssc-blue accent-osssc-blue cursor-pointer"
-                      checked={currentResponse?.selectedOption === opt.index}
-                      onChange={() => dispatch(selectOption({ questionId: currentQuestion._id, optionIndex: opt.index }))}
-                    />
-                  </div>
-                  <span className="font-semibold text-sm md:text-base">{String.fromCharCode(64 + opt.index)}.</span>
-                  <span className="flex-1 text-sm md:text-base">{opt[language] || opt.en}</span>
-                </label>
-              ))}
+              {currentQuestion.options.map((opt) => {
+                let borderClass = 'border-gray-200 hover:bg-gray-50';
+                if (currentResponse?.selectedOption === opt.index) {
+                  borderClass = 'border-testyari-blue bg-blue-50';
+                }
+                
+                // Practice Mode formatting
+                if (hasAnsweredInPractice) {
+                  if (opt.index === currentQuestion.correctOptionIndex) {
+                    borderClass = 'border-green-500 bg-green-50 shadow-sm';
+                  } else if (currentResponse?.selectedOption === opt.index) {
+                    borderClass = 'border-red-500 bg-red-50 shadow-sm';
+                  } else {
+                    borderClass = 'border-gray-200 opacity-60 cursor-not-allowed';
+                  }
+                }
+
+                return (
+                  <label 
+                    key={opt.index} 
+                    className={`flex items-start gap-3 md:gap-4 p-3 md:p-4 border rounded ${hasAnsweredInPractice ? 'cursor-not-allowed' : 'cursor-pointer'} transition-colors ${borderClass}`}
+                  >
+                    <div className="flex-shrink-0 mt-0.5">
+                      <input 
+                        type="radio" 
+                        name={`question_${currentQuestion._id}`}
+                        className={`w-4 h-4 md:w-5 md:h-5 text-testyari-blue accent-testyari-blue ${hasAnsweredInPractice ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                        checked={currentResponse?.selectedOption === opt.index}
+                        onChange={() => {
+                          if (!hasAnsweredInPractice) {
+                            dispatch(selectOption({ questionId: currentQuestion._id, optionIndex: opt.index }));
+                          }
+                        }}
+                        disabled={hasAnsweredInPractice}
+                      />
+                    </div>
+                    <span className="font-semibold text-sm md:text-base">{String.fromCharCode(64 + opt.index)}.</span>
+                    <span className="flex-1 text-sm md:text-base">{opt[language] || opt.en}</span>
+                  </label>
+                )
+              })}
             </div>
+
+            {hasAnsweredInPractice && (
+              <div className={`mt-6 p-4 md:p-6 border rounded-lg shadow-sm animate-in fade-in slide-in-from-bottom-2 ${isPracticeCorrect ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                <h3 className={`text-lg md:text-xl font-bold mb-2 flex items-center gap-2 ${isPracticeCorrect ? 'text-green-700' : 'text-red-700'}`}>
+                  {isPracticeCorrect ? (
+                    <><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> Correct!</>
+                  ) : (
+                    <><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg> Incorrect</>
+                  )}
+                </h3>
+                
+                <div className="bg-white/60 p-3 rounded border border-black/5 mb-3">
+                  <p className="text-gray-800 font-semibold">
+                    The correct answer is: <span className="text-green-700 font-bold ml-1">
+                      Option {String.fromCharCode(64 + currentQuestion.correctOptionIndex)}. {currentQuestion.options.find(o => o.index === currentQuestion.correctOptionIndex)?.[language] || currentQuestion.options.find(o => o.index === currentQuestion.correctOptionIndex)?.en}
+                    </span>
+                  </p>
+                </div>
+
+                {currentQuestion.explanation && (currentQuestion.explanation.en || currentQuestion.explanation.or) && (
+                  <div className="mt-4 pt-4 border-t border-black/10">
+                    <h4 className="font-semibold text-sm text-gray-700 mb-1">Explanation:</h4>
+                    <p className="text-gray-600 text-sm md:text-base leading-relaxed">
+                      {currentQuestion.explanation[language] || currentQuestion.explanation.en}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Action Bar */}
           <div className="bg-gray-100 p-3 md:p-4 border-t border-gray-300 flex flex-wrap justify-between items-center gap-2 lg:gap-4 shrink-0">
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button 
-                onClick={() => dispatch(clearResponse())}
-                className="flex-1 sm:flex-none px-3 md:px-6 py-2 bg-white border border-gray-400 text-xs md:text-sm font-semibold rounded shadow-sm hover:bg-gray-50 text-gray-700 text-center whitespace-nowrap"
-              >
-                Clear
-              </button>
-              <button 
-                onClick={() => dispatch(markForReviewAndNext())}
-                className="flex-1 sm:flex-none px-3 md:px-6 py-2 bg-purple-600 text-white text-xs md:text-sm font-semibold rounded shadow-sm hover:bg-purple-700 text-center whitespace-nowrap"
-              >
-                Mark & Next
-              </button>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button 
-                onClick={() => dispatch(saveAndNext())}
-                className="flex-1 sm:flex-none px-3 md:px-6 py-2 bg-green-600 text-white text-xs md:text-sm font-semibold rounded shadow-sm hover:bg-green-700 text-center whitespace-nowrap"
-              >
-                Save & Next
-              </button>
-              <button 
-                disabled={submitMutation.isPending}
-                onClick={() => {
-                  setModalState({
-                    isOpen: true,
-                    type: 'confirm',
-                    title: 'Confirm Submission',
-                    message: 'Are you sure you want to submit the exam? You will not be able to change your answers after submission.',
-                    onConfirm: handleConfirmSubmit
-                  });
-                }}
-                className="flex-1 sm:flex-none px-3 md:px-6 py-2 bg-gray-300 text-gray-800 text-xs md:text-sm font-bold rounded shadow-sm hover:bg-gray-400 disabled:opacity-50 text-center whitespace-nowrap"
-              >
-                {submitMutation.isPending ? 'Wait...' : 'Submit'}
-              </button>
-            </div>
+            {isPracticeMode ? (
+              <>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <button 
+                    onClick={() => navigate('/dashboard')}
+                    className="flex-1 sm:flex-none px-3 md:px-6 py-2 bg-gray-600 border border-gray-700 text-white text-xs md:text-sm font-semibold rounded shadow-sm hover:bg-gray-700 text-center whitespace-nowrap"
+                  >
+                    Exit Practice
+                  </button>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <button 
+                    onClick={() => {
+                      const nextIdx = currentQuestionIndex + 1;
+                      if (nextIdx < questions.length) {
+                        dispatch(setCurrentQuestionIndex(nextIdx));
+                      } else {
+                        navigate('/dashboard'); // End of practice
+                      }
+                    }}
+                    className="flex-1 sm:flex-none px-3 md:px-6 py-2 bg-blue-600 text-white text-xs md:text-sm font-semibold rounded shadow-sm hover:bg-blue-700 text-center whitespace-nowrap"
+                  >
+                    Next Question
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <button 
+                    onClick={() => dispatch(clearResponse())}
+                    className="flex-1 sm:flex-none px-3 md:px-6 py-2 bg-white border border-gray-400 text-xs md:text-sm font-semibold rounded shadow-sm hover:bg-gray-50 text-gray-700 text-center whitespace-nowrap"
+                  >
+                    Clear
+                  </button>
+                  <button 
+                    onClick={() => dispatch(markForReviewAndNext())}
+                    className="flex-1 sm:flex-none px-3 md:px-6 py-2 bg-purple-600 text-white text-xs md:text-sm font-semibold rounded shadow-sm hover:bg-purple-700 text-center whitespace-nowrap"
+                  >
+                    Mark & Next
+                  </button>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <button 
+                    onClick={() => dispatch(saveAndNext())}
+                    className="flex-1 sm:flex-none px-3 md:px-6 py-2 bg-green-600 text-white text-xs md:text-sm font-semibold rounded shadow-sm hover:bg-green-700 text-center whitespace-nowrap"
+                  >
+                    Save & Next
+                  </button>
+                  <button 
+                    disabled={submitMutation.isPending}
+                    onClick={() => {
+                      setModalState({
+                        isOpen: true,
+                        type: 'confirm',
+                        title: 'Confirm Submission',
+                        message: 'Are you sure you want to submit the exam? You will not be able to change your answers after submission.',
+                        onConfirm: handleConfirmSubmit
+                      });
+                    }}
+                    className="flex-1 sm:flex-none px-3 md:px-6 py-2 bg-gray-300 text-gray-800 text-xs md:text-sm font-bold rounded shadow-sm hover:bg-gray-400 disabled:opacity-50 text-center whitespace-nowrap"
+                  >
+                    {submitMutation.isPending ? 'Wait...' : 'Submit'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </main>
 

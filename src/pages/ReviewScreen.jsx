@@ -64,7 +64,7 @@ export const ReviewScreen = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans text-gray-800">
-      <header className="bg-osssc-blue text-white shadow-md z-10 flex flex-col">
+      <header className="bg-testyari-blue text-white shadow-md z-10 flex flex-col">
         <div className="flex flex-wrap justify-between items-center px-4 md:px-6 py-3 border-b border-blue-800 gap-3">
           <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-[200px] truncate">
             <Link to={`/exam/${examId}/result`} className="text-blue-200 hover:text-white font-bold whitespace-nowrap">&larr; Back</Link>
@@ -90,7 +90,7 @@ export const ReviewScreen = () => {
               <button 
                 key={idx} 
                 onClick={() => handleSubjectClick(section)}
-                className={`px-3 md:px-4 py-1 text-xs md:text-sm font-semibold rounded whitespace-nowrap transition-colors ${isActive ? 'bg-white text-osssc-blue shadow' : 'text-blue-200 hover:bg-blue-800'}`}
+                className={`px-3 md:px-4 py-1 text-xs md:text-sm font-semibold rounded whitespace-nowrap transition-colors ${isActive ? 'bg-white text-testyari-blue shadow' : 'text-blue-200 hover:bg-blue-800'}`}
               >
                 {section}
               </button>
@@ -204,7 +204,7 @@ export const ReviewScreen = () => {
 
             {/* Explanation Box */}
             <div className="mt-6 md:mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4 md:p-6">
-              <h3 className="font-bold text-osssc-blue mb-2 flex items-center gap-2 text-sm md:text-base">
+              <h3 className="font-bold text-testyari-blue mb-2 flex items-center gap-2 text-sm md:text-base">
                 <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Explanation
               </h3>
@@ -226,7 +226,7 @@ export const ReviewScreen = () => {
             <button 
               onClick={() => setCurrentIdx(Math.min(questions.length - 1, currentIdx + 1))}
               disabled={currentIdx === questions.length - 1}
-              className="flex-1 sm:flex-none px-4 md:px-6 py-2 bg-osssc-blue text-white font-semibold rounded shadow-sm hover:bg-blue-800 disabled:opacity-50 text-xs md:text-sm ml-2 text-center"
+              className="flex-1 sm:flex-none px-4 md:px-6 py-2 bg-testyari-blue text-white font-semibold rounded shadow-sm hover:bg-blue-800 disabled:opacity-50 text-xs md:text-sm ml-2 text-center"
             >
               Next &rarr;
             </button>

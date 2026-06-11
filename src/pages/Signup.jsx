@@ -52,7 +52,7 @@ export const Signup = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-        <div className="bg-osssc-blue px-6 py-4 border-b border-blue-800">
+        <div className="bg-testyari-blue px-6 py-4 border-b border-blue-800">
           <h2 className="text-2xl font-bold text-white text-center">Candidate Registration</h2>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -60,25 +60,25 @@ export const Signup = () => {
           
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">Full Name</label>
-            <input type="text" name="name" required className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-osssc-blue" value={formData.name} onChange={handleChange} />
+            <input type="text" name="name" required className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-testyari-blue" value={formData.name} onChange={handleChange} />
           </div>
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">Email Address</label>
-            <input type="email" name="email" required className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-osssc-blue" value={formData.email} onChange={handleChange} />
+            <input type="email" name="email" required className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-testyari-blue" value={formData.email} onChange={handleChange} />
           </div>
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
-            <input type="password" name="password" required className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-osssc-blue" value={formData.password} onChange={handleChange} />
+            <input type="password" name="password" required className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-testyari-blue" value={formData.password} onChange={handleChange} />
           </div>
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
-            <input type="password" name="confirmPassword" required className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-osssc-blue" value={formData.confirmPassword} onChange={handleChange} />
+            <input type="password" name="confirmPassword" required className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-testyari-blue" value={formData.confirmPassword} onChange={handleChange} />
           </div>
-          <button type="submit" disabled={loading} className="w-full bg-osssc-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded shadow-md mt-4 disabled:opacity-70">
+          <button type="submit" disabled={loading} className="w-full bg-testyari-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded shadow-md mt-4 disabled:opacity-70">
             {loading ? 'Registering...' : 'Register'}
           </button>
           <div className="text-center mt-4 text-sm text-gray-600">
-            Already have an account? <Link to="/login" className="text-osssc-blue font-semibold hover:underline">Log in</Link>
+            Already have an account? <Link to="/login" className="text-testyari-blue font-semibold hover:underline">Log in</Link>
           </div>
         </form>
       </div>
