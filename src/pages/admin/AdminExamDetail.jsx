@@ -15,10 +15,10 @@ export const AdminExamDetail = () => {
   const queryClient = useQueryClient();
   const { examId } = useParams();
   const toast = useToast();
-  
+
   const [activeTab, setActiveTab] = useState('questions');
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
-  
+
   const [file, setFile] = useState(null);
   const [uploadMode, setUploadMode] = useState('file');
   const [jsonText, setJsonText] = useState(`[
@@ -27,13 +27,19 @@ export const AdminExamDetail = () => {
     "Subject": "General Knowledge",
     "Weight": 1.0,
     "NegativeMark": 0.25,
-    "Question_EN": "What is the capital of India?",
-    "Opt1_EN": "Mumbai",
-    "Opt2_EN": "New Delhi",
-    "Opt3_EN": "Kolkata",
-    "Opt4_EN": "Chennai",
+    "Question_EN": "What is the capital of India? (Mandatory)",
+    "Opt1_EN": "Mumbai (Mandatory)",
+    "Opt2_EN": "New Delhi (Mandatory)",
+    "Opt3_EN": "Kolkata (Mandatory)",
+    "Opt4_EN": "Chennai (Mandatory)",
     "Correct_Index": 2,
-    "Explanation_EN": "New Delhi is the capital of India."
+    "Explanation_EN": "New Delhi is the capital of India. (Optional)",
+    "Question_OR": "ଭାରତର ରାଜଧାନୀ କ'ଣ?",
+    "Opt1_OR": "ମୁମ୍ବାଇ ",
+    "Opt2_OR": "ନୂଆଦିଲ୍ଲୀ ",
+    "Opt3_OR": "କୋଲକାତା ",
+    "Opt4_OR": "ଚେନ୍ନାଇ ",
+    "Explanation_OR": "ନୂଆଦିଲ୍ଲୀ ଭାରତର ରାଜଧାନୀ।"
   },
   {
     "QuestionNumber": 2,
@@ -55,7 +61,7 @@ export const AdminExamDetail = () => {
   const [modalState, setModalState] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
 
   const toggleRow = (id) => {
-    setExpandedRows(prev => ({...prev, [id]: !prev[id]}));
+    setExpandedRows(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   // Fetch Questions
@@ -98,11 +104,11 @@ export const AdminExamDetail = () => {
     },
     onSuccess: (data) => {
       let msg = `Successfully uploaded ${data.count} questions.`;
-      
+
       if (data.skipped && data.skipped.length > 0) {
         msg += ` (Skipped ${data.skipped.length} invalid rows). `;
       }
-      
+
       if (data.sortedList && data.sortedList.length > 0) {
         msg += `\n\nQuestions processed and sorted by subject:\n`;
         // group by subject to summarize
@@ -145,11 +151,11 @@ export const AdminExamDetail = () => {
     },
     onSuccess: (data) => {
       let msg = `✅ Saved ${data.count} questions.`;
-      
+
       if (data.skipped && data.skipped.length > 0) {
         msg += ` Skipped ${data.skipped.length} invalid rows.`;
       }
-      
+
       if (data.sortedList && data.sortedList.length > 0) {
         const subjectCounts = {};
         data.sortedList.forEach(q => {
@@ -248,7 +254,7 @@ export const AdminExamDetail = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <Modal 
+      <Modal
         isOpen={modalState.isOpen}
         type={modalState.type}
         title={modalState.title}
@@ -269,23 +275,23 @@ export const AdminExamDetail = () => {
           </button>
         </div>
       </header>
-      
+
       {/* Tab Navigation */}
       <div className="bg-white border-b shadow-sm px-4 md:px-8 pt-4 overflow-x-auto">
         <div className="flex gap-4 md:gap-6 min-w-max">
-          <button 
+          <button
             className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'questions' ? 'border-testyari-blue text-testyari-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('questions')}
           >
             Question Bank
           </button>
-          <button 
+          <button
             className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'users' ? 'border-testyari-blue text-testyari-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('users')}
           >
             Candidate Progress
           </button>
-          <button 
+          <button
             className={`pb-3 font-bold px-2 border-b-2 transition-colors text-sm md:text-base ${activeTab === 'leaderboard' ? 'border-testyari-blue text-testyari-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('leaderboard')}
           >
@@ -295,7 +301,7 @@ export const AdminExamDetail = () => {
       </div>
 
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 md:gap-8">
-        
+
         {activeTab === 'questions' && (
           <>
             {/* Bulk Upload Section */}
@@ -303,17 +309,17 @@ export const AdminExamDetail = () => {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-2 mb-4 gap-2">
                 <h2 className="text-base md:text-lg font-bold text-gray-800">Append Questions via CSV, XLSX, or JSON</h2>
                 <div className="flex gap-2">
-                  <a 
-                    href="/template_questions.csv" 
-                    download 
+                  <a
+                    href="/template_questions.csv"
+                    download
                     className="text-xs md:text-sm font-bold text-testyari-blue hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     CSV Template
                   </a>
-                  <a 
-                    href="/template_questions.json" 
-                    download 
+                  <a
+                    href="/template_questions.json"
+                    download
                     className="text-xs md:text-sm font-bold text-testyari-blue hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -322,14 +328,14 @@ export const AdminExamDetail = () => {
                 </div>
               </div>
               <div className="flex gap-4 mb-4 border-b">
-                <button 
+                <button
                   type="button"
                   onClick={() => setUploadMode('file')}
                   className={`pb-2 font-bold text-sm ${uploadMode === 'file' ? 'border-b-2 border-testyari-blue text-testyari-blue' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                   File Upload
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={() => setUploadMode('json')}
                   className={`pb-2 font-bold text-sm ${uploadMode === 'json' ? 'border-b-2 border-testyari-blue text-testyari-blue' : 'text-gray-500 hover:text-gray-700'}`}
@@ -352,7 +358,7 @@ export const AdminExamDetail = () => {
                 ) : (
                   <div className="flex flex-col gap-3 mt-2">
                     <label className="block text-xs md:text-sm font-bold text-gray-700">Paste or type your JSON Array here</label>
-                    <textarea 
+                    <textarea
                       value={jsonText}
                       onChange={(e) => setJsonText(e.target.value)}
                       rows={10}
@@ -375,7 +381,7 @@ export const AdminExamDetail = () => {
               <div className="p-4 md:p-6 border-b bg-gray-50 flex justify-between items-center">
                 <h2 className="text-base md:text-lg font-bold text-gray-800">Question Database ({questions?.length || 0})</h2>
                 {selectedQuestionIds.length > 0 && (
-                  <button 
+                  <button
                     onClick={() => {
                       setModalState({
                         isOpen: true,
@@ -395,7 +401,7 @@ export const AdminExamDetail = () => {
                   </button>
                 )}
               </div>
-              
+
               <div className="flex-1 overflow-x-auto p-0">
                 {qLoading ? (
                   <div className="p-8 text-center text-gray-500 font-bold">Loading database...</div>
@@ -404,8 +410,8 @@ export const AdminExamDetail = () => {
                     <thead>
                       <tr className="bg-gray-100 border-b border-gray-200 text-gray-700">
                         <th className="p-3 w-10 text-center">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             className="w-4 h-4 text-testyari-blue rounded focus:ring-testyari-blue cursor-pointer"
                             checked={questions && questions.length > 0 && selectedQuestionIds.length === questions.length}
                             onChange={(e) => {
@@ -428,8 +434,8 @@ export const AdminExamDetail = () => {
                       {questions?.map(q => (
                         <tr key={q._id} className={`border-b border-gray-100 hover:bg-gray-50 ${selectedQuestionIds.includes(q._id) ? 'bg-blue-50/50' : ''}`}>
                           <td className="p-3 text-center">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               className="w-4 h-4 text-testyari-blue rounded focus:ring-testyari-blue cursor-pointer"
                               checked={selectedQuestionIds.includes(q._id)}
                               onChange={(e) => {
@@ -447,7 +453,7 @@ export const AdminExamDetail = () => {
                           <td className="p-3 font-bold text-green-600">{q.correctOptionIndex}</td>
                           <td className="p-3 flex justify-center gap-1 md:gap-2">
                             <button onClick={() => setEditingQuestion(q)} className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 md:px-3 py-1 rounded text-[10px] md:text-xs font-bold">Edit</button>
-                            <button 
+                            <button
                               onClick={() => {
                                 setModalState({
                                   isOpen: true,
@@ -485,7 +491,7 @@ export const AdminExamDetail = () => {
             <div className="p-4 md:p-6 border-b bg-gray-50 flex justify-between items-center">
               <h2 className="text-base md:text-lg font-bold text-gray-800">Candidate Progress Tracker</h2>
             </div>
-            
+
             <div className="flex-1 overflow-x-auto p-0">
               {pLoading ? (
                 <div className="p-8 text-center text-gray-500 font-bold">Loading candidate data...</div>
@@ -507,12 +513,11 @@ export const AdminExamDetail = () => {
                         <td className="p-3 font-mono text-gray-600">{user.registrationNumber}</td>
                         <td className="p-3 text-gray-600">{user.email}</td>
                         <td className="p-3">
-                          <span className={`px-2 py-1 rounded text-[10px] md:text-xs font-bold ${
-                            user.sessionStatus === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                            user.sessionStatus === 'SUBMITTED' ? 'bg-blue-100 text-blue-800' :
-                            user.sessionStatus === 'EXPIRED' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
+                          <span className={`px-2 py-1 rounded text-[10px] md:text-xs font-bold ${user.sessionStatus === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                              user.sessionStatus === 'SUBMITTED' ? 'bg-blue-100 text-blue-800' :
+                                user.sessionStatus === 'EXPIRED' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                            }`}>
                             {user.sessionStatus}
                           </span>
                         </td>
@@ -541,7 +546,7 @@ export const AdminExamDetail = () => {
               <h2 className="text-base md:text-lg font-bold text-gray-800">Exam Leaderboard</h2>
               <span className="bg-testyari-blue text-white px-3 py-1 rounded text-xs font-bold shadow-sm">Top Scorers</span>
             </div>
-            
+
             <div className="flex-1 overflow-x-auto p-0">
               {lLoading ? (
                 <div className="p-8 text-center text-gray-500 font-bold">Loading leaderboard...</div>
@@ -568,45 +573,45 @@ export const AdminExamDetail = () => {
 
                       return (
                         <React.Fragment key={user._id}>
-                        <tr className={`border-b border-gray-100 hover:bg-blue-50 transition-colors ${user.rank <= 3 ? 'bg-orange-50/30' : ''}`}>
-                          <td className="p-3 text-center align-middle">{getRankBadge(user.rank)}</td>
-                          <td className="p-3 font-bold text-gray-800">
-                            {user.name}
-                            {user.subjects && Object.keys(user.subjects).length > 0 && (
-                              <button onClick={() => toggleRow(user._id)} className="ml-3 px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider text-blue-600 bg-blue-100 rounded hover:bg-blue-200 transition-colors">
-                                {expandedRows[user._id] ? 'Hide Subjects' : 'View Subjects'}
-                              </button>
-                            )}
-                          </td>
-                          <td className="p-3 font-mono text-gray-600">{user.registrationNumber}</td>
-                          <td className="p-3 text-center font-bold text-green-600">{user.correctCount}</td>
-                          <td className="p-3 text-center font-bold text-red-600">{user.incorrectCount}</td>
-                          <td className="p-3 text-right">
-                            <span className="font-black text-testyari-blue text-base md:text-lg">
-                              {user.totalScore.toFixed(2)}
-                            </span>
-                          </td>
-                        </tr>
-                        {expandedRows[user._id] && user.subjects && (
-                          <tr className="bg-gray-50 border-b border-gray-200">
-                            <td colSpan="6" className="p-4">
-                              <div className="bg-white rounded border border-gray-200 p-3 shadow-inner">
-                                <h4 className="text-sm font-bold text-gray-700 mb-2">Subject-wise Performance</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                  {Object.entries(user.subjects).map(([subject, stats]) => (
-                                    <div key={subject} className="bg-gray-50 p-2 rounded border border-gray-100 text-xs">
-                                      <div className="font-bold text-gray-800 mb-1 border-b pb-1">{subject}</div>
-                                      <div className="flex justify-between"><span>Attempted:</span> <span className="font-semibold">{stats.attempted}</span></div>
-                                      <div className="flex justify-between"><span>Total Mark:</span> <span className="font-semibold text-green-600">{stats.positiveMarks}</span></div>
-                                      <div className="flex justify-between"><span>Minus Mark:</span> <span className="font-semibold text-red-600">-{stats.negativeMarks}</span></div>
-                                      <div className="flex justify-between mt-1 pt-1 border-t border-gray-200"><span>Net Score:</span> <span className="font-bold text-testyari-blue">{stats.score.toFixed(2)}</span></div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
+                          <tr className={`border-b border-gray-100 hover:bg-blue-50 transition-colors ${user.rank <= 3 ? 'bg-orange-50/30' : ''}`}>
+                            <td className="p-3 text-center align-middle">{getRankBadge(user.rank)}</td>
+                            <td className="p-3 font-bold text-gray-800">
+                              {user.name}
+                              {user.subjects && Object.keys(user.subjects).length > 0 && (
+                                <button onClick={() => toggleRow(user._id)} className="ml-3 px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider text-blue-600 bg-blue-100 rounded hover:bg-blue-200 transition-colors">
+                                  {expandedRows[user._id] ? 'Hide Subjects' : 'View Subjects'}
+                                </button>
+                              )}
+                            </td>
+                            <td className="p-3 font-mono text-gray-600">{user.registrationNumber}</td>
+                            <td className="p-3 text-center font-bold text-green-600">{user.correctCount}</td>
+                            <td className="p-3 text-center font-bold text-red-600">{user.incorrectCount}</td>
+                            <td className="p-3 text-right">
+                              <span className="font-black text-testyari-blue text-base md:text-lg">
+                                {user.totalScore.toFixed(2)}
+                              </span>
                             </td>
                           </tr>
-                        )}
+                          {expandedRows[user._id] && user.subjects && (
+                            <tr className="bg-gray-50 border-b border-gray-200">
+                              <td colSpan="6" className="p-4">
+                                <div className="bg-white rounded border border-gray-200 p-3 shadow-inner">
+                                  <h4 className="text-sm font-bold text-gray-700 mb-2">Subject-wise Performance</h4>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                    {Object.entries(user.subjects).map(([subject, stats]) => (
+                                      <div key={subject} className="bg-gray-50 p-2 rounded border border-gray-100 text-xs">
+                                        <div className="font-bold text-gray-800 mb-1 border-b pb-1">{subject}</div>
+                                        <div className="flex justify-between"><span>Attempted:</span> <span className="font-semibold">{stats.attempted}</span></div>
+                                        <div className="flex justify-between"><span>Total Mark:</span> <span className="font-semibold text-green-600">{stats.positiveMarks}</span></div>
+                                        <div className="flex justify-between"><span>Minus Mark:</span> <span className="font-semibold text-red-600">-{stats.negativeMarks}</span></div>
+                                        <div className="flex justify-between mt-1 pt-1 border-t border-gray-200"><span>Net Score:</span> <span className="font-bold text-testyari-blue">{stats.score.toFixed(2)}</span></div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
                         </React.Fragment>
                       );
                     })}
@@ -625,10 +630,10 @@ export const AdminExamDetail = () => {
       </main>
 
       {editingQuestion && (
-        <QuestionForm 
-          initialData={editingQuestion} 
-          onSave={(data) => editMutation.mutate(data)} 
-          onCancel={() => setEditingQuestion(null)} 
+        <QuestionForm
+          initialData={editingQuestion}
+          onSave={(data) => editMutation.mutate(data)}
+          onCancel={() => setEditingQuestion(null)}
         />
       )}
     </div>
