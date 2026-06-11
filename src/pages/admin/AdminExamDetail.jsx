@@ -6,6 +6,7 @@ import api from '../../api/axiosConfig';
 import { logout } from '../../store/authSlice';
 import { QuestionForm } from '../../components/admin/QuestionForm';
 import { Modal } from '../../components/Modal';
+import { useToast } from '../../components/Toast';
 
 export const AdminExamDetail = () => {
   const { user } = useSelector(state => state.auth);
@@ -13,10 +14,41 @@ export const AdminExamDetail = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { examId } = useParams();
+  const toast = useToast();
   
   const [activeTab, setActiveTab] = useState('questions');
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
   
   const [file, setFile] = useState(null);
+  const [uploadMode, setUploadMode] = useState('file');
+  const [jsonText, setJsonText] = useState(`[
+  {
+    "QuestionNumber": 1,
+    "Subject": "General Knowledge",
+    "Weight": 1.0,
+    "NegativeMark": 0.25,
+    "Question_EN": "What is the capital of India?",
+    "Opt1_EN": "Mumbai",
+    "Opt2_EN": "New Delhi",
+    "Opt3_EN": "Kolkata",
+    "Opt4_EN": "Chennai",
+    "Correct_Index": 2,
+    "Explanation_EN": "New Delhi is the capital of India."
+  },
+  {
+    "QuestionNumber": 2,
+    "Subject": "Mathematics",
+    "Weight": 1.0,
+    "NegativeMark": 0.25,
+    "Question_EN": "What is 2 + 2?",
+    "Opt1_EN": "3",
+    "Opt2_EN": "4",
+    "Opt3_EN": "5",
+    "Opt4_EN": "6",
+    "Correct_Index": 2,
+    "Explanation_EN": "2 plus 2 equals 4."
+  }
+]`);
   const [uploadStatus, setUploadStatus] = useState('');
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [expandedRows, setExpandedRows] = useState({});
@@ -66,22 +98,22 @@ export const AdminExamDetail = () => {
     },
     onSuccess: (data) => {
       let msg = `Successfully uploaded ${data.count} questions.`;
+      
       if (data.skipped && data.skipped.length > 0) {
         msg += ` (Skipped ${data.skipped.length} invalid rows). `;
-        
-        if (data.sampleRow) {
-          const foundKeys = Object.keys(data.sampleRow).map(k => k.trim());
-          const missing = [];
-          if (!foundKeys.includes('QuestionNumber')) missing.push('QuestionNumber');
-          if (!foundKeys.includes('Correct_Index')) missing.push('Correct_Index');
-          
-          if (missing.length > 0) {
-            msg += `\nError: Could not find columns: ${missing.join(', ')}. Please check your Excel headers!`;
-          } else {
-            msg += `\nError: 'Correct_Index' must be a number from 1 to 4, and 'QuestionNumber' must be a number.`;
-          }
-        }
       }
+      
+      if (data.sortedList && data.sortedList.length > 0) {
+        msg += `\n\nQuestions processed and sorted by subject:\n`;
+        // group by subject to summarize
+        const subjectCounts = {};
+        data.sortedList.forEach(q => {
+          const subj = q.subjectTag || 'Unknown';
+          subjectCounts[subj] = (subjectCounts[subj] || 0) + 1;
+        });
+        msg += Object.entries(subjectCounts).map(([subj, count]) => `- ${subj}: ${count} questions`).join('\n');
+      }
+
       setModalState({
         isOpen: true,
         type: 'alert',
@@ -105,6 +137,39 @@ export const AdminExamDetail = () => {
     }
   });
 
+  // JSON Playground Mutation (sends raw JSON, no file upload)
+  const jsonPlaygroundMutation = useMutation({
+    mutationFn: async (payload) => {
+      const res = await api.post('/admin/upload-questions-json', payload);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      let msg = `✅ Saved ${data.count} questions.`;
+      
+      if (data.skipped && data.skipped.length > 0) {
+        msg += ` Skipped ${data.skipped.length} invalid rows.`;
+      }
+      
+      if (data.sortedList && data.sortedList.length > 0) {
+        const subjectCounts = {};
+        data.sortedList.forEach(q => {
+          const subj = q.subjectTag || 'Unknown';
+          subjectCounts[subj] = (subjectCounts[subj] || 0) + 1;
+        });
+        msg += '\n' + Object.entries(subjectCounts).map(([subj, count]) => `${subj}: ${count}`).join(' · ');
+      }
+
+      toast(msg, 'success', 5000);
+      setUploadStatus('');
+      queryClient.invalidateQueries(['admin_questions', examId]);
+      setJsonText('');
+    },
+    onError: (err) => {
+      toast('Save failed: ' + (err.response?.data?.message || err.message), 'error', 5000);
+      setUploadStatus('');
+    }
+  });
+
   // Edit Mutation
   const editMutation = useMutation({
     mutationFn: async (updatedQuestion) => {
@@ -124,18 +189,56 @@ export const AdminExamDetail = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['admin_questions', examId]);
+      toast('Question deleted successfully', 'success', 3000);
+    }
+  });
+
+  // Bulk Delete Mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (questionIds) => {
+      const res = await api.post(`/admin/questions/bulk-delete`, { questionIds });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['admin_questions', examId]);
+      setSelectedQuestionIds([]);
+      toast(data.message, 'success', 3000);
+    },
+    onError: (err) => {
+      toast('Bulk delete failed: ' + (err.response?.data?.message || err.message), 'error', 5000);
     }
   });
 
   const handleUpload = (e) => {
     e.preventDefault();
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('examId', examId);
-
     setUploadStatus('Uploading...');
-    uploadMutation.mutate(formData);
+
+    if (uploadMode === 'file') {
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('examId', examId);
+      uploadMutation.mutate(formData);
+    } else {
+      // JSON Playground: parse text and send as JSON body to dedicated endpoint
+      if (!jsonText.trim()) return;
+      let parsedQuestions;
+      try {
+        parsedQuestions = JSON.parse(jsonText);
+        if (!Array.isArray(parsedQuestions)) {
+          parsedQuestions = [parsedQuestions];
+        }
+      } catch (parseErr) {
+        setUploadStatus('Invalid JSON: ' + parseErr.message);
+        setModalState({
+          isOpen: true, type: 'alert', title: 'Invalid JSON',
+          message: 'Your JSON has a syntax error: ' + parseErr.message,
+          onConfirm: () => setModalState({ ...modalState, isOpen: false })
+        });
+        return;
+      }
+      jsonPlaygroundMutation.mutate({ examId, questions: parsedQuestions });
+    }
   };
 
   const handleLogout = () => {
@@ -198,26 +301,71 @@ export const AdminExamDetail = () => {
             {/* Bulk Upload Section */}
             <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-2 mb-4 gap-2">
-                <h2 className="text-base md:text-lg font-bold text-gray-800">Append Questions via CSV or XLSX</h2>
-                <a 
-                  href="/template_questions.csv" 
-                  download 
-                  className="text-xs md:text-sm font-bold text-testyari-blue hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                  Download Template
-                </a>
-              </div>
-              <form onSubmit={handleUpload} className="flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 md:gap-4 mt-2">
-                  <div className="flex-1 w-full">
-                    <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1 md:mb-2">Questions File (CSV/XLSX)</label>
-                    <input type="file" accept=".csv, .xlsx, .xls" onChange={(e) => setFile(e.target.files[0])} className="w-full border rounded px-3 py-1.5 bg-white text-xs md:text-sm" />
-                  </div>
-                  <button type="submit" disabled={!file || uploadMutation.isPending} className="w-full sm:w-auto bg-testyari-blue text-white font-bold py-2 px-6 rounded shadow disabled:opacity-50 text-sm md:text-base">
-                    {uploadMutation.isPending ? 'Uploading...' : 'Upload Questions'}
-                  </button>
+                <h2 className="text-base md:text-lg font-bold text-gray-800">Append Questions via CSV, XLSX, or JSON</h2>
+                <div className="flex gap-2">
+                  <a 
+                    href="/template_questions.csv" 
+                    download 
+                    className="text-xs md:text-sm font-bold text-testyari-blue hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    CSV Template
+                  </a>
+                  <a 
+                    href="/template_questions.json" 
+                    download 
+                    className="text-xs md:text-sm font-bold text-testyari-blue hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    JSON Template
+                  </a>
                 </div>
+              </div>
+              <div className="flex gap-4 mb-4 border-b">
+                <button 
+                  type="button"
+                  onClick={() => setUploadMode('file')}
+                  className={`pb-2 font-bold text-sm ${uploadMode === 'file' ? 'border-b-2 border-testyari-blue text-testyari-blue' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  File Upload
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setUploadMode('json')}
+                  className={`pb-2 font-bold text-sm ${uploadMode === 'json' ? 'border-b-2 border-testyari-blue text-testyari-blue' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  JSON Playground
+                </button>
+              </div>
+
+              <form onSubmit={handleUpload} className="flex flex-col gap-4">
+                {uploadMode === 'file' ? (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 md:gap-4 mt-2">
+                    <div className="flex-1 w-full">
+                      <label className="block text-xs md:text-sm font-bold text-gray-700 mb-1 md:mb-2">Questions File (CSV/XLSX/JSON)</label>
+                      <input type="file" accept=".csv, .xlsx, .xls, .json" onChange={(e) => setFile(e.target.files[0])} className="w-full border rounded px-3 py-1.5 bg-white text-xs md:text-sm" />
+                    </div>
+                    <button type="submit" disabled={!file || uploadMutation.isPending} className="w-full sm:w-auto bg-testyari-blue text-white font-bold py-2 px-6 rounded shadow disabled:opacity-50 text-sm md:text-base">
+                      {uploadMutation.isPending ? 'Uploading...' : 'Upload File'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 mt-2">
+                    <label className="block text-xs md:text-sm font-bold text-gray-700">Paste or type your JSON Array here</label>
+                    <textarea 
+                      value={jsonText}
+                      onChange={(e) => setJsonText(e.target.value)}
+                      rows={10}
+                      className="w-full border rounded p-3 font-mono text-xs md:text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-testyari-blue"
+                      placeholder="[{...}, {...}]"
+                    />
+                    <div className="flex justify-end">
+                      <button type="submit" disabled={!jsonText.trim() || jsonPlaygroundMutation.isPending} className="w-full sm:w-auto bg-testyari-blue text-white font-bold py-2 px-6 rounded shadow disabled:opacity-50 text-sm md:text-base">
+                        {jsonPlaygroundMutation.isPending ? 'Saving...' : 'Save Questions'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </form>
               {uploadStatus && <p className="mt-4 text-xs md:text-sm font-bold text-indigo-600">{uploadStatus}</p>}
             </section>
@@ -226,6 +374,26 @@ export const AdminExamDetail = () => {
             <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
               <div className="p-4 md:p-6 border-b bg-gray-50 flex justify-between items-center">
                 <h2 className="text-base md:text-lg font-bold text-gray-800">Question Database ({questions?.length || 0})</h2>
+                {selectedQuestionIds.length > 0 && (
+                  <button 
+                    onClick={() => {
+                      setModalState({
+                        isOpen: true,
+                        type: 'danger',
+                        title: 'Bulk Delete Questions',
+                        message: `Are you sure you want to delete ${selectedQuestionIds.length} selected question(s)? This cannot be undone.`,
+                        onConfirm: () => {
+                          setModalState({ ...modalState, isOpen: false });
+                          bulkDeleteMutation.mutate(selectedQuestionIds);
+                        }
+                      });
+                    }}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-bold shadow-sm flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    Delete Selected ({selectedQuestionIds.length})
+                  </button>
+                )}
               </div>
               
               <div className="flex-1 overflow-x-auto p-0">
@@ -235,6 +403,20 @@ export const AdminExamDetail = () => {
                   <table className="w-full text-left border-collapse text-xs md:text-sm min-w-[600px]">
                     <thead>
                       <tr className="bg-gray-100 border-b border-gray-200 text-gray-700">
+                        <th className="p-3 w-10 text-center">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 text-testyari-blue rounded focus:ring-testyari-blue cursor-pointer"
+                            checked={questions && questions.length > 0 && selectedQuestionIds.length === questions.length}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedQuestionIds(questions.map(q => q._id));
+                              } else {
+                                setSelectedQuestionIds([]);
+                              }
+                            }}
+                          />
+                        </th>
                         <th className="p-3 font-bold w-12 md:w-16">Q.No</th>
                         <th className="p-3 font-bold w-24 md:w-32">Subject</th>
                         <th className="p-3 font-bold">English Snippet</th>
@@ -244,7 +426,21 @@ export const AdminExamDetail = () => {
                     </thead>
                     <tbody>
                       {questions?.map(q => (
-                        <tr key={q._id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <tr key={q._id} className={`border-b border-gray-100 hover:bg-gray-50 ${selectedQuestionIds.includes(q._id) ? 'bg-blue-50/50' : ''}`}>
+                          <td className="p-3 text-center">
+                            <input 
+                              type="checkbox" 
+                              className="w-4 h-4 text-testyari-blue rounded focus:ring-testyari-blue cursor-pointer"
+                              checked={selectedQuestionIds.includes(q._id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedQuestionIds([...selectedQuestionIds, q._id]);
+                                } else {
+                                  setSelectedQuestionIds(selectedQuestionIds.filter(id => id !== q._id));
+                                }
+                              }}
+                            />
+                          </td>
                           <td className="p-3 font-semibold text-gray-600">{q.questionNumber}</td>
                           <td className="p-3"><span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-[10px] md:text-xs font-bold">{q.subjectTag}</span></td>
                           <td className="p-3 truncate max-w-[150px] md:max-w-md" title={q.content.en}>{q.content.en}</td>
@@ -273,7 +469,7 @@ export const AdminExamDetail = () => {
                       ))}
                       {(!questions || questions.length === 0) && (
                         <tr>
-                          <td colSpan="5" className="p-8 text-center text-gray-500">No questions found in this exam batch.</td>
+                          <td colSpan="6" className="p-8 text-center text-gray-500">No questions found in this exam batch.</td>
                         </tr>
                       )}
                     </tbody>

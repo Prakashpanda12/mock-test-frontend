@@ -43,6 +43,15 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
     staleTime: Infinity
   });
 
+  const { data: bookmarkedQuestions = [] } = useQuery({
+    queryKey: ['bookmarks', examId],
+    queryFn: async () => {
+      const res = await api.get(`/exam/${examId}/bookmarks`);
+      return res.data.data; // returns array of questionIds
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const queryClient = useQueryClient();
 
   const submitMutation = useMutation({
@@ -85,9 +94,36 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
     }
   });
 
+  const toggleBookmarkMutation = useMutation({
+    mutationFn: async (questionId) => {
+      const res = await api.post(`/exam/bookmark`, { examId, questionId });
+      return res.data;
+    },
+    onMutate: async (questionId) => {
+      await queryClient.cancelQueries(['bookmarks', examId]);
+      const previousBookmarks = queryClient.getQueryData(['bookmarks', examId]);
+      queryClient.setQueryData(['bookmarks', examId], old => {
+        if (!old) return [questionId];
+        return old.includes(questionId) ? old.filter(id => id !== questionId) : [...old, questionId];
+      });
+      return { previousBookmarks };
+    },
+    onError: (err, questionId, context) => {
+      queryClient.setQueryData(['bookmarks', examId], context.previousBookmarks);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(['bookmarks', examId]);
+    }
+  });
+
   React.useEffect(() => {
     // Intercept browser back button
     const handlePopState = (e) => {
+      if (isPracticeMode) {
+        // Allow free exit in practice mode
+        navigate('/dashboard');
+        return;
+      }
       e.preventDefault();
       window.history.pushState(null, "", window.location.href);
       setExitModalState({ isOpen: true });
@@ -99,7 +135,7 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, []);
+  }, [isPracticeMode, navigate]);
 
   const handleAutoSubmit = React.useCallback(() => {
     if (isPracticeMode || isSubmitting || submitMutation.isPending) return;
@@ -278,7 +314,7 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
             <div className="flex-1 overflow-hidden pt-12">
-              <QuestionPalette onCloseMobile={() => setIsPaletteOpen(false)} />
+              <QuestionPalette onCloseMobile={() => setIsPaletteOpen(false)} bookmarkedQuestions={bookmarkedQuestions} />
             </div>
           </div>
         </div>
@@ -289,7 +325,13 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
         <div className="flex flex-wrap justify-between items-center px-4 md:px-6 py-3 border-b border-blue-800 gap-3">
           <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-[200px] truncate">
             <button 
-              onClick={() => setExitModalState({ isOpen: true })}
+              onClick={() => {
+                if (isPracticeMode) {
+                  navigate('/dashboard');
+                } else {
+                  setExitModalState({ isOpen: true });
+                }
+              }}
               className="text-blue-200 hover:text-white font-bold whitespace-nowrap"
             >
               &larr; Exit
@@ -339,7 +381,22 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
         <main className="flex-1 flex flex-col bg-white overflow-hidden">
           {/* Header of Question Area */}
           <div className="flex flex-wrap justify-between items-center p-3 md:p-4 border-b border-gray-200 bg-gray-50 gap-2">
-            <h2 className="text-base md:text-lg font-bold">Q.No: {String(currentQuestion.questionNumber).padStart(2, '0')}</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-base md:text-lg font-bold">Q.No: {String(currentQuestion.questionNumber).padStart(2, '0')}</h2>
+              <button
+                onClick={() => toggleBookmarkMutation.mutate(currentQuestion._id)}
+                className={`p-1.5 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-400 ${
+                  bookmarkedQuestions.includes(currentQuestion._id) 
+                    ? 'text-yellow-500 hover:text-yellow-600 bg-yellow-50' 
+                    : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'
+                }`}
+                title={bookmarkedQuestions.includes(currentQuestion._id) ? "Remove bookmark" : "Mark as important"}
+              >
+                <svg className="w-6 h-6" fill={bookmarkedQuestions.includes(currentQuestion._id) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </button>
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-xs md:text-sm font-semibold hidden sm:inline">View In:</span>
               <select 
@@ -507,7 +564,7 @@ export const ViewportLayout = ({ targetEpoch, isPracticeMode }) => {
 
         {/* Side Panel (Desktop only) */}
         <aside className="hidden lg:block w-[320px] flex-shrink-0">
-          <QuestionPalette />
+          <QuestionPalette bookmarkedQuestions={bookmarkedQuestions} />
         </aside>
 
       </div>

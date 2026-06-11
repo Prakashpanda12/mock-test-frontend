@@ -2,7 +2,7 @@ import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setCurrentQuestionIndex, PALETTE_STATES } from '../store/examSlice';
 
-export const QuestionPalette = ({ onCloseMobile }) => {
+export const QuestionPalette = ({ onCloseMobile, bookmarkedQuestions = [] }) => {
   const dispatch = useDispatch();
   const { questions, responses, currentQuestionIndex } = useSelector((state) => state.exam);
   const user = useSelector((state) => state.auth.user);
@@ -84,12 +84,19 @@ export const QuestionPalette = ({ onCloseMobile }) => {
                 }}
                 className={`
                   w-10 h-10 rounded border text-sm font-bold shadow-sm transition-all
-                  flex items-center justify-center
+                  flex items-center justify-center relative
                   ${getStyleForState(status)}
                   ${isCurrent ? 'ring-2 ring-offset-2 ring-blue-500' : 'hover:opacity-90'}
                 `}
               >
                 {q.questionNumber}
+                {bookmarkedQuestions.includes(q._id) && (
+                  <span className="absolute -top-2 -right-2 text-yellow-500 bg-white rounded-full drop-shadow-sm p-0.5">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  </span>
+                )}
               </button>
             );
           })}

@@ -1,0 +1,28 @@
+[
+  {
+    "QuestionNumber": 1,
+    "Subject": "General Knowledge",
+    "Weight": 1.0,
+    "NegativeMark": 0.25,
+    "Question_EN": "What is the capital of India?",
+    "Opt1_EN": "Mumbai",
+    "Opt2_EN": "New Delhi",
+    "Opt3_EN": "Kolkata",
+    "Opt4_EN": "Chennai",
+    "Correct_Index": 2,
+    "Explanation_EN": "New Delhi is the capital of India."
+  },
+  {
+    "QuestionNumber": 2,
+    "Subject": "Mathematics",
+    "Weight": 1.0,
+    "NegativeMark": 0.25,
+    "Question_EN": "What is 2 + 2?",
+    "Opt1_EN": "3",
+    "Opt2_EN": "4",
+    "Opt3_EN": "5",
+    "Opt4_EN": "6",
+    "Correct_Index": 2,
+    "Explanation_EN": "2 plus 2 equals 4."
+  }
+]
