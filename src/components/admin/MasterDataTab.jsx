@@ -248,6 +248,24 @@ export const MasterDataTab = ({ setModalState }) => {
     <section className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
       <div className="bg-gray-50 border-b flex flex-col md:flex-row justify-between items-start md:items-center px-6 pt-4 pb-0">
         <div className="mb-4 md:mb-0">
+          <div className="flex items-center gap-3">
+            <h3 className="text-xl font-bold text-gray-800">Master Data Configuration</h3>
+            <button 
+              onClick={async () => {
+                setModalState({
+                  isOpen: true,
+                  type: 'alert',
+                  title: 'Data Synced',
+                  message: 'This feature is currently available by directly editing the exams in the Exam Master List.',
+                  onConfirm: () => setModalState(prev => ({ ...prev, isOpen: false }))
+                });
+              }}
+              className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded font-bold transition-colors"
+              title="Click here if Exam names are out of sync"
+            >
+              Force Sync
+            </button>
+          </div>
           <h2 className="text-xl font-bold text-gray-800">Master Data Management</h2>
           <p className="text-sm text-gray-500">Configure global entities used throughout the application.</p>
         </div>

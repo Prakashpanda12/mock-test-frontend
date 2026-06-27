@@ -6,6 +6,7 @@ import api from '../../api/axiosConfig';
 import { logout } from '../../store/authSlice';
 import { Modal } from '../../components/Modal';
 import { MasterDataTab } from '../../components/admin/MasterDataTab';
+import { ExamExplorerTree } from '../../components/admin/ExamExplorerTree';
 
 export const AdminDashboard = () => {
   const { user } = useSelector(state => state.auth);
@@ -14,6 +15,7 @@ export const AdminDashboard = () => {
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState('exams'); // 'exams' | 'users' | 'master_data'
+  const [viewMode, setViewMode] = useState('tree'); // 'tree' | 'list'
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -125,6 +127,18 @@ export const AdminDashboard = () => {
     onError: (err) => setModalState({ isOpen: true, type: 'alert', title: 'Error', message: err.response?.data?.message || err.message, onConfirm: () => setModalState({ ...modalState, isOpen: false }) })
   });
 
+  const renameSubTopicMutation = useMutation({
+    mutationFn: async ({ sectionName, oldSubTopicName, newSubTopicName }) => {
+      const res = await api.put('/admin/exams/bulk-update-subtopic', { sectionName, oldSubTopicName, newSubTopicName });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      setModalState({ isOpen: true, type: 'alert', title: 'Success', message: data.message, onConfirm: () => setModalState({ ...modalState, isOpen: false }) });
+      queryClient.invalidateQueries(['admin_exams_stats']);
+    },
+    onError: (err) => setModalState({ isOpen: true, type: 'alert', title: 'Error', message: err.response?.data?.message || err.message, onConfirm: () => setModalState({ ...modalState, isOpen: false }) })
+  });
+
   const handleCreateExam = (e) => {
     e.preventDefault();
     setCreateError('');
@@ -134,6 +148,79 @@ export const AdminDashboard = () => {
     } else {
       createExamMutation.mutate(examData);
     }
+  };
+
+  const handleQuickAddSectionalTopic = (section, topicName) => {
+    // Find most recently created exam in this section to copy duration/marks, or use defaults
+    const sectionExams = exams?.filter(e => e.examCategory === 'SECTIONAL' && e.sectionName === section) || [];
+    let defaultDuration = 30;
+    let defaultMarks = 30;
+    let defaultQuestions = 30;
+    let defaultNegMarking = 0.25;
+
+    if (sectionExams.length > 0) {
+      const sorted = [...sectionExams].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      const lastExam = sorted[0];
+      defaultDuration = lastExam.durationMinutes || 30;
+      defaultMarks = lastExam.totalMarks || 30;
+      defaultQuestions = lastExam.totalQuestions || 30;
+      defaultNegMarking = lastExam.negativeMarking || 0.25;
+    }
+
+    const examData = {
+      title: `${topicName} - Set 1`,
+      durationMinutes: defaultDuration,
+      negativeMarking: defaultNegMarking,
+      totalQuestions: defaultQuestions,
+      totalMarks: defaultMarks,
+      organization: 'OSSSC',
+      recruitmentType: 'General',
+      targetPosts: '',
+      examCategory: 'SECTIONAL',
+      sectionName: section,
+      subSectionName: topicName
+    };
+    createExamMutation.mutate(examData);
+  };
+
+  const handleQuickAddSectionalSet = (section, topicName) => {
+    // Find exams for this specific subtopic
+    const topicExams = exams?.filter(e => e.examCategory === 'SECTIONAL' && e.sectionName === section && e.subSectionName === topicName) || [];
+    
+    let defaultDuration = 30;
+    let defaultMarks = 30;
+    let defaultQuestions = 30;
+    let defaultNegMarking = 0.25;
+
+    if (topicExams.length > 0) {
+      const sorted = [...topicExams].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      const lastExam = sorted[0];
+      defaultDuration = lastExam.durationMinutes || 30;
+      defaultMarks = lastExam.totalMarks || 30;
+      defaultQuestions = lastExam.totalQuestions || 30;
+      defaultNegMarking = lastExam.negativeMarking || 0.25;
+    }
+
+    const setName = `${topicName} - Set ${topicExams.length + 1}`;
+
+    const examData = {
+      title: setName,
+      durationMinutes: defaultDuration,
+      negativeMarking: defaultNegMarking,
+      totalQuestions: defaultQuestions,
+      totalMarks: defaultMarks,
+      organization: 'OSSSC',
+      recruitmentType: 'General',
+      targetPosts: '',
+      examCategory: 'SECTIONAL',
+      sectionName: section,
+      subSectionName: topicName
+    };
+    createExamMutation.mutate(examData);
+  };
+
+  const handleRenameSubTopic = (sectionName, oldSubTopicName, newSubTopicName) => {
+    renameSubTopicMutation.mutate({ sectionName, oldSubTopicName, newSubTopicName });
   };
 
   const handleLogout = () => {
@@ -244,21 +331,69 @@ export const AdminDashboard = () => {
                 <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Exam Master List</h2>
                 <p className="text-sm font-medium text-gray-500 mt-1">Manage all registered examinations and view their overall statistics.</p>
               </div>
-              <button 
-                onClick={() => {
+              
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="bg-gray-200 p-1 rounded-lg flex items-center shrink-0">
+                  <button 
+                    onClick={() => setViewMode('tree')}
+                    className={`px-3 py-1.5 text-sm font-bold rounded-md transition-all ${viewMode === 'tree' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    Tree View
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('list')}
+                    className={`px-3 py-1.5 text-sm font-bold rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}
+                  >
+                    List View
+                  </button>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    setEditingExamId(null);
+                    setExamTitle(''); setOrganization(''); setRecruitmentType(''); setTargetPosts(''); 
+                    setDurationMinutes(120); setTotalQuestions(100); setTotalMarks(100); setNegativeMarking(0.25);
+                    setExamCategory('FULL_LENGTH'); setSectionName(''); setSubSectionName('');
+                    setCreateError(''); setShowCreateModal(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center gap-2 hover:-translate-y-0.5 shrink-0"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                  <span className="hidden sm:inline">Create New Exam</span>
+                </button>
+              </div>
+            </div>
+            
+            {viewMode === 'tree' ? (
+              <ExamExplorerTree 
+                organizations={orgData} 
+                exams={exams}
+                sections={sectionsData}
+                onQuickAddSectionalTopic={handleQuickAddSectionalTopic}
+                onQuickAddSectionalSet={handleQuickAddSectionalSet}
+                onRenameSubTopic={handleRenameSubTopic}
+                onAddExam={(org, rec, post) => {
                   setEditingExamId(null);
-                  setExamTitle(''); setOrganization(''); setRecruitmentType(''); setTargetPosts(''); 
+                  setExamTitle('');
+                  setOrganization(org);
+                  setRecruitmentType(rec);
+                  setTargetPosts(post);
                   setDurationMinutes(120); setTotalQuestions(100); setTotalMarks(100); setNegativeMarking(0.25);
                   setExamCategory('FULL_LENGTH'); setSectionName(''); setSubSectionName('');
                   setCreateError(''); setShowCreateModal(true);
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all flex items-center gap-2 hover:-translate-y-0.5 w-full sm:w-auto justify-center"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                Create New Exam
-              </button>
-            </div>
-            
+                onEditExam={(exam) => {
+                  setEditingExamId(exam.examId); setExamTitle(exam.title); setOrganization(exam.organization || '');
+                  setRecruitmentType(exam.recruitmentType || ''); setTargetPosts(exam.targetPosts || '');
+                  setDurationMinutes(exam.durationMinutes); setTotalQuestions(exam.totalQuestions);
+                  setTotalMarks(exam.totalMarks); setNegativeMarking(exam.negativeMarking);
+                  setExamCategory(exam.examCategory || 'FULL_LENGTH'); setSectionName(exam.sectionName || '');
+                  setSubSectionName(exam.subSectionName || ''); setCreateError(''); setShowCreateModal(true);
+                }}
+                onDeleteExam={handleDeleteClick}
+                onManageExam={(examId) => navigate(`/admin/exam/${examId}`)}
+              />
+            ) : (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex-1 flex flex-col">
               <div className="flex-1 overflow-x-auto">
                 {isLoading ? (
@@ -314,6 +449,29 @@ export const AdminDashboard = () => {
                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button 
                                 onClick={() => {
+                                  setEditingExamId(null); // Null because we are creating a NEW exam
+                                  setExamTitle(exam.title + ' (Copy)'); 
+                                  setOrganization(exam.organization || '');
+                                  setRecruitmentType(exam.recruitmentType || ''); 
+                                  setTargetPosts(exam.targetPosts || '');
+                                  setDurationMinutes(exam.durationMinutes); 
+                                  setTotalQuestions(exam.totalQuestions);
+                                  setTotalMarks(exam.totalMarks); 
+                                  setNegativeMarking(exam.negativeMarking);
+                                  setExamCategory(exam.examCategory || 'FULL_LENGTH'); 
+                                  setSectionName(exam.sectionName || '');
+                                  setSubSectionName(''); // Clear topic so backend auto-generates next set number
+                                  setCreateError(''); 
+                                  setShowCreateModal(true);
+                                }}
+                                className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs transition-colors flex items-center gap-1"
+                                title="Duplicate this Exam config"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
+                                Clone
+                              </button>
+                              <button 
+                                onClick={() => {
                                   setEditingExamId(exam.examId); setExamTitle(exam.title); setOrganization(exam.organization || '');
                                   setRecruitmentType(exam.recruitmentType || ''); setTargetPosts(exam.targetPosts || '');
                                   setDurationMinutes(exam.durationMinutes); setTotalQuestions(exam.totalQuestions);
@@ -354,6 +512,7 @@ export const AdminDashboard = () => {
                 )}
               </div>
             </div>
+            )}
           </div>
           )}
 
