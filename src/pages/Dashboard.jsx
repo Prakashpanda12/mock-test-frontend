@@ -379,14 +379,14 @@ export const Dashboard = () => {
                 {/* Internal Navigation (Full vs Sectional) */}
                 <div className="flex gap-8 relative border-b border-gray-100 w-full lg:w-auto pb-1">
                   <button 
-                    className={`text-lg md:text-xl font-extrabold pb-3 transition-colors relative z-10 ${examTab === 'FULL_LENGTH' ? 'text-blue-700' : 'text-gray-400 hover:text-gray-700'}`}
+                    className={`text-base md:text-xl font-extrabold pb-3 transition-colors relative z-10 ${examTab === 'FULL_LENGTH' ? 'text-blue-700' : 'text-gray-400 hover:text-gray-700'}`}
                     onClick={() => { setExamTab('FULL_LENGTH'); setSelectedSection(null); setSelectedTopic(null); }}
                   >
                     Full Length Tests
                     {examTab === 'FULL_LENGTH' && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-blue-600 rounded-t-md"></div>}
                   </button>
                   <button 
-                    className={`text-lg md:text-xl font-extrabold pb-3 transition-colors relative z-10 ${examTab === 'SECTIONAL' ? 'text-blue-700' : 'text-gray-400 hover:text-gray-700'}`}
+                    className={`text-base md:text-xl font-extrabold pb-3 transition-colors relative z-10 ${examTab === 'SECTIONAL' ? 'text-blue-700' : 'text-gray-400 hover:text-gray-700'}`}
                     onClick={() => { setExamTab('SECTIONAL'); setSelectedSection(null); setSelectedTopic(null); }}
                   >
                     Sectional Tests
@@ -445,7 +445,7 @@ export const Dashboard = () => {
                         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 p-5 rounded-2xl shadow-inner relative z-10 group-hover:text-blue-700 group-hover:from-blue-100 group-hover:to-indigo-100 transition-colors">
                           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                         </div>
-                        <h3 className="text-xl font-extrabold text-gray-800 relative z-10 group-hover:text-blue-900 transition-colors">{section.sectionName}</h3>
+                        <h3 className="text-lg md:text-xl font-extrabold text-gray-800 relative z-10 group-hover:text-blue-900 transition-colors">{section.sectionName}</h3>
                         <div className="bg-gray-50 border border-gray-100 text-gray-600 text-xs font-bold px-4 py-2 rounded-lg relative z-10 group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-100 transition-colors">
                           {section.topics.reduce((acc, curr) => acc + curr.exams.length, 0)} Available Sets
                         </div>
@@ -473,7 +473,7 @@ export const Dashboard = () => {
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                       </div>
                       <div>
-                        <h3 className="text-2xl font-extrabold text-gray-800 tracking-tight">{selectedSection} Topics</h3>
+                        <h3 className="text-xl md:text-2xl font-extrabold text-gray-800 tracking-tight">{selectedSection} Topics</h3>
                         <p className="text-sm font-semibold text-gray-500 mt-1">Select a topic to view available practice sets</p>
                       </div>
                     </div>
@@ -492,7 +492,7 @@ export const Dashboard = () => {
                               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                             </div>
                             <div className="relative z-10">
-                              <h3 className="text-lg font-extrabold text-gray-800 group-hover:text-purple-900 transition-colors">{topic.topicName}</h3>
+                              <h3 className="text-base md:text-lg font-extrabold text-gray-800 group-hover:text-purple-900 transition-colors">{topic.topicName}</h3>
                               <p className="text-xs font-bold text-gray-500 mt-1 bg-gray-50 px-2 py-1 rounded inline-block group-hover:bg-purple-50 group-hover:text-purple-700 transition-colors">
                                 {topic.exams.length} Sets
                               </p>
@@ -553,7 +553,7 @@ export const Dashboard = () => {
                             
                             <div className="p-6 md:p-8 flex-1 relative z-10">
                               <div className="flex flex-wrap justify-between items-start gap-4 mb-5">
-                                <h3 className="text-xl font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors line-clamp-2 leading-tight">{exam.title}</h3>
+                                <h3 className="text-lg md:text-xl font-extrabold text-gray-900 group-hover:text-blue-700 transition-colors line-clamp-2 leading-tight">{exam.title}</h3>
                                 {alreadyTaken && (
                                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-green-50 text-green-700 border border-green-200 shadow-sm shrink-0">
                                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path></svg>

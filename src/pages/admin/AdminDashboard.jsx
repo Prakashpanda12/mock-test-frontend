@@ -56,6 +56,16 @@ export const AdminDashboard = () => {
     enabled: activeTab === 'users'
   });
 
+  // Fetch Global Analytics
+  const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
+    queryKey: ['admin_global_analytics'],
+    queryFn: async () => {
+      const res = await api.get('/admin/global-analytics');
+      return res.data.data;
+    },
+    enabled: activeTab === 'analytics'
+  });
+
   // Fetch Master Data for dropdowns
   const { data: orgData, isLoading: orgLoading } = useQuery({
     queryKey: ['admin_organizations'],
@@ -275,6 +285,13 @@ export const AdminDashboard = () => {
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
               Exam Master List
+            </button>
+            <button 
+              onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false); }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === 'analytics' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+              Analytics & Reports
             </button>
             <button 
               onClick={() => { setActiveTab('users'); setIsSidebarOpen(false); }}
@@ -514,6 +531,121 @@ export const AdminDashboard = () => {
             </div>
             )}
           </div>
+          )}
+
+          {/* Analytics & Reports */}
+          {activeTab === 'analytics' && (
+            <div className="max-w-7xl mx-auto flex flex-col h-full animate-fade-in space-y-6 overflow-y-auto pb-10 pr-2">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Global Analytics & Reports</h2>
+                <p className="text-sm font-medium text-gray-500 mt-1">Platform-wide statistics, global candidate leaderboards, and popular exams.</p>
+              </div>
+
+              {analyticsLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-blue-600"></div>
+                </div>
+              ) : (
+                <>
+                  {/* Quick Stats Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex items-center gap-6">
+                      <div className="bg-blue-50 text-blue-600 p-4 rounded-2xl">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Active Candidates</p>
+                        <p className="text-3xl font-black text-gray-900">{analyticsData?.quickStats?.totalCandidates || 0}</p>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex items-center gap-6">
+                      <div className="bg-purple-50 text-purple-600 p-4 rounded-2xl">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Total Exams Submitted</p>
+                        <p className="text-3xl font-black text-gray-900">{analyticsData?.quickStats?.totalExamsTaken || 0}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
+                    {/* Global Leaderboard */}
+                    <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                      <div className="bg-gray-50 p-5 border-b border-gray-200 flex items-center justify-between">
+                        <h3 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                          Global Leaderboard (Top 20)
+                        </h3>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-sm min-w-[500px]">
+                          <thead>
+                            <tr className="bg-gray-50/50 border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider">
+                              <th className="p-4 font-bold text-center w-16">Rank</th>
+                              <th className="p-4 font-bold">Candidate</th>
+                              <th className="p-4 font-bold text-center">Exams Taken</th>
+                              <th className="p-4 font-bold text-right">Total Score</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {analyticsData?.leaderboard?.length > 0 ? analyticsData.leaderboard.map((entry) => (
+                              <tr key={entry.userId} className="hover:bg-gray-50 transition-colors">
+                                <td className="p-4 text-center">
+                                  {entry.rank === 1 ? <span className="text-xl">🥇</span> : 
+                                   entry.rank === 2 ? <span className="text-xl">🥈</span> : 
+                                   entry.rank === 3 ? <span className="text-xl">🥉</span> : 
+                                   <span className="font-bold text-gray-500">#{entry.rank}</span>}
+                                </td>
+                                <td className="p-4">
+                                  <p className="font-extrabold text-gray-900">{entry.user?.name}</p>
+                                  <p className="text-xs text-gray-500 font-mono mt-0.5">{entry.user?.registrationNumber}</p>
+                                </td>
+                                <td className="p-4 text-center font-bold text-gray-600">{entry.examsTaken}</td>
+                                <td className="p-4 text-right font-black text-blue-600 text-base">{entry.totalScore?.toFixed(2)}</td>
+                              </tr>
+                            )) : (
+                              <tr>
+                                <td colSpan="4" className="p-8 text-center text-gray-400 font-medium">No candidate data available yet.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Popular Exams */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                      <div className="bg-gray-50 p-5 border-b border-gray-200">
+                        <h3 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                          Most Popular Exams
+                        </h3>
+                      </div>
+                      <div className="divide-y divide-gray-100 overflow-y-auto max-h-[400px]">
+                        {analyticsData?.popularExams?.length > 0 ? analyticsData.popularExams.map((entry, index) => (
+                          <div key={entry.examId} className="p-4 hover:bg-gray-50 transition-colors flex items-center gap-4">
+                            <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center font-black text-sm shrink-0">
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-extrabold text-gray-900 truncate" title={entry.exam?.title}>{entry.exam?.title}</p>
+                              <p className="text-xs font-bold text-gray-500 truncate mt-0.5">{entry.exam?.sectionName || 'Full Length'}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="font-black text-gray-800">{entry.attempts}</p>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase">Attempts</p>
+                            </div>
+                          </div>
+                        )) : (
+                          <div className="p-8 text-center text-gray-400 font-medium">No exam data available yet.</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           )}
 
           {/* Users Master List */}
