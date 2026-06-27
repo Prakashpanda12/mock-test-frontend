@@ -17,6 +17,18 @@ export const ExamExplorerTree = ({
   const [quickAddInput, setQuickAddInput] = useState({ section: null, value: '' });
   const [editingTopic, setEditingTopic] = useState({ section: null, oldName: null, value: '' });
 
+  // Combine sections from master data with any unique sections found in the exams
+  const allSectionsMap = new Map();
+  sections?.forEach(s => {
+    allSectionsMap.set(s.name, { _id: s._id, name: s.name, isOrphaned: false });
+  });
+  exams?.filter(e => e.examCategory === 'SECTIONAL').forEach(e => {
+    if (e.sectionName && !allSectionsMap.has(e.sectionName)) {
+      allSectionsMap.set(e.sectionName, { _id: `orphaned-${e.sectionName}`, name: e.sectionName, isOrphaned: true });
+    }
+  });
+  const allSections = Array.from(allSectionsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+
   const toggleNode = (nodeId) => {
     setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
@@ -190,7 +202,7 @@ export const ExamExplorerTree = ({
           );
         })}
 
-        {treeTab === 'sectional' && sections?.map(section => {
+        {treeTab === 'sectional' && allSections.map(section => {
           const sectionId = `sec-${section._id}`;
           const isSectionExpanded = expandedNodes[sectionId];
           const sectionExams = getSectionalExams(section.name);
@@ -206,7 +218,9 @@ export const ExamExplorerTree = ({
                 <div className="flex items-center gap-2">
                   <div className="text-gray-400 w-5 flex justify-center">{isSectionExpanded ? <ChevronDown /> : <ChevronRight />}</div>
                   <SectionIcon />
-                  <span className="font-bold text-gray-800">{section.name}</span>
+                  <span className={`font-bold ${section.isOrphaned ? 'text-red-500' : 'text-gray-800'}`}>
+                    {section.name} {section.isOrphaned && '(Not in Master Data)'}
+                  </span>
                   <span className="bg-purple-100 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded">{topicKeys.length} sub-topics</span>
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center pr-2">

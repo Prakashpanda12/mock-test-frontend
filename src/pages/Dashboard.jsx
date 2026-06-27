@@ -27,13 +27,23 @@ export const Dashboard = () => {
     navigate(`/exam/${examId}`);
   };
 
-  const { data: exams, isLoading: isExamsLoading } = useQuery({
-    queryKey: ['available_exams'],
+  const { data: fullExamsRaw, isLoading: isFullLoading } = useQuery({
+    queryKey: ['available_exams', 'full_length'],
     queryFn: async () => {
-      const res = await api.get('/exam/list');
+      const res = await api.get('/exam/full-length');
       return res.data.data;
     }
   });
+
+  const { data: structuredSectionals, isLoading: isSecLoading } = useQuery({
+    queryKey: ['available_exams', 'sectional'],
+    queryFn: async () => {
+      const res = await api.get('/exam/sectional');
+      return res.data.data;
+    }
+  });
+
+  const isExamsLoading = isFullLoading || isSecLoading;
 
   const { data: performanceHistory, isLoading: isPerfLoading } = useQuery({
     queryKey: ['my_performance'],
@@ -81,16 +91,21 @@ export const Dashboard = () => {
   const selectedRecData = selectedOrgData?.recruitments.find(r => r.name === filterType);
   const availablePosts = ['All', ...(selectedRecData ? selectedRecData.posts : [])];
 
-  const filteredExams = exams?.filter(e => {
+  const matchExam = (e) => {
     const matchOrg = filterOrg === 'All' || (e.organization || 'OSSSC') === filterOrg;
     const matchType = filterType === 'All' || (e.recruitmentType || 'General') === filterType;
     const matchPost = filterPost === 'All' || (e.targetPosts && e.targetPosts.includes(filterPost));
     return matchOrg && matchType && matchPost;
-  });
+  };
 
-  const fullExams = filteredExams?.filter(e => e.examCategory !== 'SECTIONAL') || [];
-  const sectionalExams = filteredExams?.filter(e => e.examCategory === 'SECTIONAL') || [];
-  const availableSections = [...new Set(sectionalExams.map(e => e.sectionName))].filter(Boolean);
+  const fullExams = fullExamsRaw?.filter(matchExam) || [];
+
+  const filteredSectionals = structuredSectionals?.map(section => {
+    const filteredTopics = section.topics.map(topic => {
+      return { ...topic, exams: topic.exams.filter(matchExam) };
+    }).filter(topic => topic.exams.length > 0);
+    return { ...section, topics: filteredTopics };
+  }).filter(section => section.topics.length > 0) || [];
 
   const hasTakenExam = (examId) => {
     if (!performanceHistory) return false;
@@ -380,7 +395,7 @@ export const Dashboard = () => {
                 </div>
                 
                 {/* Filters */}
-                {exams && exams.length > 0 && (
+                {((fullExamsRaw && fullExamsRaw.length > 0) || (structuredSectionals && structuredSectionals.length > 0)) && (
                   <div className="flex flex-wrap gap-3 w-full lg:w-auto">
                     <select 
                       className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-xl focus:ring-blue-500 focus:border-blue-500 block px-4 py-2.5 font-bold transition-all outline-none hover:bg-gray-100 cursor-pointer"
@@ -420,19 +435,19 @@ export const Dashboard = () => {
                 {/* SECTIONAL TESTS LOGIC */}
                 {examTab === 'SECTIONAL' && !selectedSection && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {availableSections.length > 0 ? availableSections.map(section => (
+                    {filteredSectionals.length > 0 ? filteredSectionals.map(section => (
                       <div 
-                        key={section}
-                        onClick={() => setSelectedSection(section)}
+                        key={section.sectionName}
+                        onClick={() => setSelectedSection(section.sectionName)}
                         className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 p-8 cursor-pointer flex flex-col items-center justify-center text-center gap-4 hover:-translate-y-1.5 group relative overflow-hidden"
                       >
                         <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-50 to-transparent rounded-bl-full -mr-12 -mt-12 transition-transform duration-500 group-hover:scale-125"></div>
                         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 p-5 rounded-2xl shadow-inner relative z-10 group-hover:text-blue-700 group-hover:from-blue-100 group-hover:to-indigo-100 transition-colors">
                           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                         </div>
-                        <h3 className="text-xl font-extrabold text-gray-800 relative z-10 group-hover:text-blue-900 transition-colors">{section}</h3>
+                        <h3 className="text-xl font-extrabold text-gray-800 relative z-10 group-hover:text-blue-900 transition-colors">{section.sectionName}</h3>
                         <div className="bg-gray-50 border border-gray-100 text-gray-600 text-xs font-bold px-4 py-2 rounded-lg relative z-10 group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-100 transition-colors">
-                          {sectionalExams.filter(e => e.sectionName === section).length} Available Sets
+                          {section.topics.reduce((acc, curr) => acc + curr.exams.length, 0)} Available Sets
                         </div>
                       </div>
                     )) : (
@@ -464,11 +479,12 @@ export const Dashboard = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {(() => {
-                        const topics = [...new Set(sectionalExams.filter(e => e.sectionName === selectedSection).map(e => e.subSectionName || 'General'))];
+                        const secObj = filteredSectionals.find(s => s.sectionName === selectedSection);
+                        const topics = secObj ? secObj.topics : [];
                         return topics.length > 0 ? topics.map(topic => (
                           <div 
-                            key={topic}
-                            onClick={() => setSelectedTopic(topic)}
+                            key={topic.topicName}
+                            onClick={() => setSelectedTopic(topic.topicName)}
                             className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 p-6 cursor-pointer flex items-center gap-5 hover:-translate-y-1 group relative overflow-hidden"
                           >
                             <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-purple-50 to-transparent rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
@@ -476,9 +492,9 @@ export const Dashboard = () => {
                               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                             </div>
                             <div className="relative z-10">
-                              <h3 className="text-lg font-extrabold text-gray-800 group-hover:text-purple-900 transition-colors">{topic}</h3>
+                              <h3 className="text-lg font-extrabold text-gray-800 group-hover:text-purple-900 transition-colors">{topic.topicName}</h3>
                               <p className="text-xs font-bold text-gray-500 mt-1 bg-gray-50 px-2 py-1 rounded inline-block group-hover:bg-purple-50 group-hover:text-purple-700 transition-colors">
-                                {sectionalExams.filter(e => e.sectionName === selectedSection && (e.subSectionName || 'General') === topic).length} Sets
+                                {topic.exams.length} Sets
                               </p>
                             </div>
                           </div>
@@ -518,9 +534,14 @@ export const Dashboard = () => {
                 {((examTab === 'FULL_LENGTH') || (examTab === 'SECTIONAL' && selectedSection && selectedTopic)) && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
                     {(() => {
-                      const displayExams = examTab === 'FULL_LENGTH' 
-                        ? fullExams 
-                        : sectionalExams.filter(e => e.sectionName === selectedSection && (e.subSectionName || 'General') === selectedTopic);
+                      let displayExams = [];
+                      if (examTab === 'FULL_LENGTH') {
+                        displayExams = fullExams;
+                      } else {
+                        const secObj = filteredSectionals.find(s => s.sectionName === selectedSection);
+                        const topicObj = secObj?.topics.find(t => t.topicName === selectedTopic);
+                        displayExams = topicObj ? topicObj.exams : [];
+                      }
                       
                       return displayExams.length > 0 ? displayExams.map(exam => {
                         const alreadyTaken = hasTakenExam(exam.examId);
