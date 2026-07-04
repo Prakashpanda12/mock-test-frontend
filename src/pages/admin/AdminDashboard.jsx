@@ -21,6 +21,7 @@ export const AdminDashboard = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingExamId, setEditingExamId] = useState(null);
   const [modalState, setModalState] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
+  const [passwordModal, setPasswordModal] = useState({ isOpen: false, userId: null, newPassword: '' });
   
   // New Exam Form State
   const [examTitle, setExamTitle] = useState('');
@@ -97,6 +98,19 @@ export const AdminDashboard = () => {
     },
     onSuccess: () => queryClient.invalidateQueries(['admin_users']),
     onError: (err) => setModalState({ isOpen: true, type: 'alert', title: 'Action Failed', message: err.response?.data?.message || 'Could not change user status.', onConfirm: () => setModalState({ ...modalState, isOpen: false }) })
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async ({ userId, newPassword }) => {
+      const res = await api.put(`/admin/users/${userId}/change-password`, { newPassword });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin_users']);
+      setPasswordModal({ isOpen: false, userId: null, newPassword: '' });
+      setModalState({ isOpen: true, type: 'alert', title: 'Success', message: 'Password updated successfully.', onConfirm: () => setModalState({ ...modalState, isOpen: false }) });
+    },
+    onError: (err) => setModalState({ isOpen: true, type: 'alert', title: 'Action Failed', message: err.response?.data?.message || 'Could not change password.', onConfirm: () => setModalState({ ...modalState, isOpen: false }) })
   });
 
   const createExamMutation = useMutation({
@@ -262,6 +276,36 @@ export const AdminDashboard = () => {
         onCancel={() => setModalState({ ...modalState, isOpen: false })}
         confirmText={modalState.type === 'danger' ? 'Delete' : 'Confirm'}
       />
+
+      {passwordModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-lg font-bold mb-4">Change Password</h3>
+            <input 
+              type="text" 
+              placeholder="New Password" 
+              className="w-full border p-2 rounded mb-4"
+              value={passwordModal.newPassword}
+              onChange={(e) => setPasswordModal({ ...passwordModal, newPassword: e.target.value })}
+            />
+            <div className="flex justify-end gap-2">
+              <button 
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                onClick={() => setPasswordModal({ isOpen: false, userId: null, newPassword: '' })}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                disabled={changePasswordMutation.isPending || passwordModal.newPassword.length < 6}
+                onClick={() => changePasswordMutation.mutate({ userId: passwordModal.userId, newPassword: passwordModal.newPassword })}
+              >
+                {changePasswordMutation.isPending ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -674,6 +718,7 @@ export const AdminDashboard = () => {
                         <th className="p-4 font-bold">Registration No</th>
                         <th className="p-4 font-bold">Candidate Name</th>
                         <th className="p-4 font-bold">Email Address</th>
+                        <th className="p-4 font-bold">Password</th>
                         <th className="p-4 font-bold text-center">Status</th>
                         <th className="p-4 font-bold text-right">Actions</th>
                       </tr>
@@ -684,6 +729,7 @@ export const AdminDashboard = () => {
                           <td className="p-4 font-mono font-bold text-gray-500 text-xs">{user.registrationNumber}</td>
                           <td className="p-4 font-extrabold text-gray-900">{user.name}</td>
                           <td className="p-4 text-gray-500 font-medium">{user.email}</td>
+                          <td className="p-4 font-mono text-gray-700 text-xs">{user.plainPassword || <span className="text-gray-400 italic">Not Set</span>}</td>
                           <td className="p-4 text-center">
                             <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
                               user.isActive !== false ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200'
@@ -692,23 +738,31 @@ export const AdminDashboard = () => {
                             </span>
                           </td>
                           <td className="p-4 text-right">
-                            <button 
-                              onClick={() => toggleStatusMutation.mutate(user._id)}
-                              disabled={toggleStatusMutation.isPending}
-                              className={`font-bold py-1.5 px-4 rounded-lg shadow-sm text-xs transition-colors disabled:opacity-50 ${
-                                user.isActive !== false 
-                                  ? 'bg-white hover:bg-orange-50 text-orange-600 border border-orange-200' 
-                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white border border-transparent'
-                              }`}
-                            >
-                              {user.isActive !== false ? 'Deactivate' : 'Re-activate'}
-                            </button>
+                            <div className="flex justify-end gap-2">
+                              <button 
+                                onClick={() => setPasswordModal({ isOpen: true, userId: user._id, newPassword: '' })}
+                                className="font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs transition-colors bg-white hover:bg-blue-50 text-blue-600 border border-blue-200"
+                              >
+                                Change Password
+                              </button>
+                              <button 
+                                onClick={() => toggleStatusMutation.mutate(user._id)}
+                                disabled={toggleStatusMutation.isPending}
+                                className={`font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs transition-colors disabled:opacity-50 ${
+                                  user.isActive !== false 
+                                    ? 'bg-white hover:bg-orange-50 text-orange-600 border border-orange-200' 
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white border border-transparent'
+                                }`}
+                              >
+                                {user.isActive !== false ? 'Deactivate' : 'Re-activate'}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
                       {(!usersData || usersData.length === 0) && (
                         <tr>
-                          <td colSpan="5" className="p-16 text-center text-gray-500 font-medium">
+                          <td colSpan="6" className="p-16 text-center text-gray-500 font-medium">
                             <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                             No candidates found in the system.
                           </td>
